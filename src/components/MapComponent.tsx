@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -27,118 +26,113 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   
-  // Fantasy realms and territories
+  // UK locations - Continent = UK, Realm = Countries, Territory = Cities
   const cityLocations: Location[] = [
-    // North America / Northreach
+    // England
     {
       id: '1',
-      name: 'Frostspire',  // New York
-      latitude: 40.7128,
-      longitude: -74.0060,
-      radius: 3,
-      discovered: false,
-      realm: 'Northreach',
-      territory: 'Frosthold Kingdom'
-    },
-    {
-      id: '2',
-      name: 'Embergate',  // Los Angeles
-      latitude: 34.0522,
-      longitude: -118.2437,
-      radius: 3,
-      discovered: false,
-      realm: 'Northreach',
-      territory: 'Sunfire Dominion'
-    },
-    
-    // Europe / Eldoria
-    {
-      id: '3',
-      name: 'Mistral Harbor',  // London
+      name: 'London',
+      territory: 'London',
       latitude: 51.5074,
       longitude: -0.1278,
       radius: 2.5,
       discovered: false,
-      realm: 'Eldoria',
-      territory: 'Mistral Isles'
+      realm: 'England',
+      description: 'The capital city, home to ancient towers and mystical artifacts'
     },
     {
-      id: '4',
-      name: 'Luminara',  // Paris
-      latitude: 48.8566,
-      longitude: 2.3522,
+      id: '2',
+      name: 'Manchester',
+      territory: 'Manchester',
+      latitude: 53.4808,
+      longitude: -2.2426,
       radius: 2,
       discovered: false,
-      realm: 'Eldoria',
-      territory: 'Lumina Principality'
+      realm: 'England',
+      description: 'A city of industry and innovation, where steam and magic meet'
+    },
+    {
+      id: '3',
+      name: 'Liverpool',
+      territory: 'Liverpool',
+      latitude: 53.4084,
+      longitude: -2.9916,
+      radius: 2,
+      discovered: false,
+      realm: 'England',
+      description: 'A port city with tales of seafaring adventures and hidden treasures'
     },
     
-    // Asia / Dragonspine
+    // Scotland
+    {
+      id: '4',
+      name: 'Edinburgh',
+      territory: 'Edinburgh',
+      latitude: 55.9533,
+      longitude: -3.1883,
+      radius: 2,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'The ancient seat of Scottish kings, where legends echo through the cobbled streets'
+    },
     {
       id: '5',
-      name: 'Jade Citadel',  // Beijing
-      latitude: 39.9042,
-      longitude: 116.4074,
-      radius: 3,
+      name: 'Glasgow',
+      territory: 'Glasgow',
+      latitude: 55.8642,
+      longitude: -4.2518,
+      radius: 2,
       discovered: false,
-      realm: 'Dragonspine',
-      territory: 'Jade Empire'
+      realm: 'Scotland',
+      description: 'A city of resilience and magic, where ancient clans once gathered'
     },
+    
+    // Wales
     {
       id: '6',
-      name: 'Skyfall',  // Tokyo
-      latitude: 35.6762,
-      longitude: 139.6503,
-      radius: 2.5,
+      name: 'Cardiff',
+      territory: 'Cardiff',
+      latitude: 51.4816,
+      longitude: -3.1791,
+      radius: 1.8,
       discovered: false,
-      realm: 'Dragonspine',
-      territory: 'Cloudspire Shogunate'
+      realm: 'Wales',
+      description: 'A coastal stronghold where dragons are said to still roam the mountains'
     },
-    
-    // Africa / Sunreach
     {
       id: '7',
-      name: 'Desert Crown',  // Cairo
-      latitude: 30.0444,
-      longitude: 31.2357,
-      radius: 2.8,
+      name: 'Swansea',
+      territory: 'Swansea',
+      latitude: 51.6214,
+      longitude: -3.9436,
+      radius: 1.8,
       discovered: false,
-      realm: 'Sunreach',
-      territory: 'Golden Sands Caliphate'
+      realm: 'Wales',
+      description: 'Where the sea brings both fortune and ancient curses'
     },
     
-    // Australia / Tideholm
+    // Northern Ireland
     {
       id: '8',
-      name: 'Coral Keep',  // Sydney
-      latitude: -33.8688,
-      longitude: 151.2093,
-      radius: 2.3,
+      name: 'Belfast',
+      territory: 'Belfast',
+      latitude: 54.5973,
+      longitude: -5.9301,
+      radius: 2,
       discovered: false,
-      realm: 'Tideholm',
-      territory: 'Coral Kingdom'
+      realm: 'Northern Ireland',
+      description: 'A city of walls and whispers, where the veil between worlds is thin'
     },
-    
-    // South America / Verdantia
     {
       id: '9',
-      name: 'Emerald Haven',  // Rio de Janeiro
-      latitude: -22.9068,
-      longitude: -43.1729,
-      radius: 2.6,
+      name: 'Derry',
+      territory: 'Derry',
+      latitude: 54.9966,
+      longitude: -7.3086,
+      radius: 1.5,
       discovered: false,
-      realm: 'Verdantia',
-      territory: 'Emerald Canopy'
-    },
-    {
-      id: '10',
-      name: 'Silverstream',  // Buenos Aires
-      latitude: -34.6037,
-      longitude: -58.3816,
-      radius: 2.4,
-      discovered: false,
-      realm: 'Verdantia',
-      territory: 'Silver Plains'
+      realm: 'Northern Ireland',
+      description: 'Ancient stone circles mark this land of myth and mystery'
     }
   ];
 
@@ -290,12 +284,15 @@ const MapComponent: React.FC<MapComponentProps> = ({
         .addTo(map.current);
     }
 
-    // Center map on user
-    map.current.flyTo({
-      center: [userLocation.longitude, userLocation.latitude],
-      essential: true,
-      zoom: 12
-    });
+    // Center map on user - Set a UK-centered view when first loaded
+    if (!map.current.userHasMovedMap) {
+      map.current.flyTo({
+        center: [-2.5, 54.0], // Centered on UK
+        essential: true,
+        zoom: 5.5
+      });
+      map.current.userHasMovedMap = true;
+    }
 
     // Check for new discoveries
     cityLocations.forEach(city => {
@@ -314,8 +311,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
       if (distance <= DISCOVERY_THRESHOLD) {
         onLocationDiscovered({...city, discovered: true});
         
-        toast(`🏰 You discovered ${city.name}!`, {
-          description: `Territory: ${city.territory} in the Realm of ${city.realm}`,
+        toast(`🏰 You discovered ${city.territory}!`, {
+          description: `${city.name} in the Realm of ${city.realm}`,
           duration: 5000,
           className: "bg-lorequest-dark border border-lorequest-gold text-lorequest-gold"
         });
@@ -354,7 +351,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       <div className="absolute bottom-3 left-3 bg-lorequest-dark/80 backdrop-blur-sm p-2 rounded border border-lorequest-gold/50 text-xs">
         <div className="flex items-center gap-2 text-lorequest-gold">
           <Map size={14} />
-          <span>Lore Quest</span>
+          <span>United Kingdom</span>
         </div>
       </div>
     </div>

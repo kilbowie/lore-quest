@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -21,7 +22,7 @@ const MapExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Total number of locations (in a real app would come from API)
-  const totalLocations = 10; // Updated to match our new locations count
+  const totalLocations = 9; // Updated to match our new UK locations count
   
   // Calculate exploration stats
   const stats: StatsType = {
@@ -30,7 +31,7 @@ const MapExplorer: React.FC = () => {
     percentExplored: (discoveredLocations.length / totalLocations) * 100
   };
   
-  // Group locations by realm
+  // Group locations by realm (UK countries)
   const locationsByRealm = discoveredLocations.reduce((acc, location) => {
     if (!acc[location.realm]) {
       acc[location.realm] = [];
@@ -186,7 +187,7 @@ const MapExplorer: React.FC = () => {
       <header className="flex items-center justify-between p-4 bg-lorequest-dark/80 backdrop-blur-sm z-10 border-b border-lorequest-gold/30">
         <h1 className="text-2xl font-bold flex items-center gap-2 text-lorequest-gold">
           <Map className="text-lorequest-gold" size={24} />
-          LORE QUEST
+          LORE QUEST UK
         </h1>
         
         <Button
@@ -227,7 +228,7 @@ const MapExplorer: React.FC = () => {
             {discoveredLocations.length === 0 ? (
               <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
                 <p className="text-sm text-lorequest-parchment">
-                  No territories discovered yet. Begin your journey to uncover the mysteries of this realm!
+                  No territories discovered yet. Begin your journey to uncover the mysteries of the United Kingdom!
                 </p>
               </div>
             ) : (
@@ -256,10 +257,10 @@ const MapExplorer: React.FC = () => {
           <div className="text-xs text-lorequest-muted mt-auto pt-4 border-t border-lorequest-gold/20">
             <p className="mb-2 text-lorequest-gold"><strong>How to Quest:</strong></p>
             <ul className="space-y-1 list-disc pl-4">
-              <li>Venture forth in the real world to discover new territories</li>
-              <li>Each continent is a Realm containing many Territories</li>
+              <li>Venture forth in the UK to discover new territories</li>
+              <li>Each country in the UK is a Realm containing mystical Territories</li>
               <li>Journey within 0.5 miles of a location to claim it</li>
-              <li>Complete your map to become a legendary explorer</li>
+              <li>Complete your map to become a legendary UK explorer</li>
             </ul>
             <div className="fantasy-divider my-3"></div>
             <p className="text-center text-lorequest-gold/60 text-[10px]">REAL-WORLD ADVENTURES. LEGENDARY REWARDS.</p>

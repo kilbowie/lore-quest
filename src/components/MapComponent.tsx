@@ -25,6 +25,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const map = useRef<mapboxgl.Map | null>(null);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const hasMovedMapRef = useRef<boolean>(false);
   
   // UK locations - Continent = UK, Realm = Countries, Territory = Cities
   const cityLocations: Location[] = [
@@ -285,13 +286,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
     }
 
     // Center map on user - Set a UK-centered view when first loaded
-    if (!map.current.userHasMovedMap) {
+    if (!hasMovedMapRef.current) {
       map.current.flyTo({
         center: [-2.5, 54.0], // Centered on UK
         essential: true,
         zoom: 5.5
       });
-      map.current.userHasMovedMap = true;
+      hasMovedMapRef.current = true;
     }
 
     // Check for new discoveries

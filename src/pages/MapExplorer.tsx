@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -22,7 +21,7 @@ const MapExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Total number of locations (in a real app would come from API)
-  const totalLocations = 5;
+  const totalLocations = 10; // Updated to match our new locations count
   
   // Calculate exploration stats
   const stats: StatsType = {
@@ -30,6 +29,15 @@ const MapExplorer: React.FC = () => {
     discoveredLocations: discoveredLocations.length,
     percentExplored: (discoveredLocations.length / totalLocations) * 100
   };
+  
+  // Group locations by realm
+  const locationsByRealm = discoveredLocations.reduce((acc, location) => {
+    if (!acc[location.realm]) {
+      acc[location.realm] = [];
+    }
+    acc[location.realm].push(location);
+    return acc;
+  }, {} as Record<string, Location[]>);
   
   // Load discovered locations and API key on mount
   useEffect(() => {
@@ -209,12 +217,13 @@ const MapExplorer: React.FC = () => {
           {/* Stats panel */}
           <ExplorationStats stats={stats} />
           
-          {/* Discovered locations */}
+          {/* Discovered locations by realm */}
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-3 text-lorequest-gold flex items-center gap-2">
               <Scroll size={18} />
               Discovered Territories
             </h2>
+            
             {discoveredLocations.length === 0 ? (
               <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
                 <p className="text-sm text-lorequest-parchment">
@@ -222,13 +231,22 @@ const MapExplorer: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-2">
-                {discoveredLocations.map((location) => (
-                  <DiscoveredLocationItem
-                    key={location.id}
-                    location={location}
-                    onClick={() => centerOnLocation(location)}
-                  />
+              <div className="space-y-4">
+                {Object.entries(locationsByRealm).map(([realm, locations]) => (
+                  <div key={realm} className="space-y-2">
+                    <h3 className="text-sm text-lorequest-gold font-medium border-b border-lorequest-gold/20 pb-1">
+                      Realm of {realm}
+                    </h3>
+                    <div className="grid gap-2">
+                      {locations.map((location) => (
+                        <DiscoveredLocationItem
+                          key={location.id}
+                          location={location}
+                          onClick={() => centerOnLocation(location)}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -239,8 +257,8 @@ const MapExplorer: React.FC = () => {
             <p className="mb-2 text-lorequest-gold"><strong>How to Quest:</strong></p>
             <ul className="space-y-1 list-disc pl-4">
               <li>Venture forth in the real world to discover new territories</li>
-              <li>Discovered realms remain unlocked in your chronicles</li>
-              <li>Journey within 0.5 miles of a settlement to claim it</li>
+              <li>Each continent is a Realm containing many Territories</li>
+              <li>Journey within 0.5 miles of a location to claim it</li>
               <li>Complete your map to become a legendary explorer</li>
             </ul>
             <div className="fantasy-divider my-3"></div>

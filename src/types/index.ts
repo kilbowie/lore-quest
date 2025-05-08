@@ -6,6 +6,8 @@ export interface Location {
   longitude: number;
   radius: number; // in miles
   discovered: boolean;
+  realm: string; // Continent
+  territory: string; // Country
 }
 
 export interface UserLocation {

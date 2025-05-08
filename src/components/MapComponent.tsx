@@ -27,47 +27,118 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   
-  // Sample city locations for demonstration - normally would fetch from API
+  // Fantasy realms and territories
   const cityLocations: Location[] = [
+    // North America / Northreach
     {
       id: '1',
-      name: 'Eldoria',  // Fantasy name for Boston
-      latitude: 42.3601,
-      longitude: -71.0589,
-      radius: 2,
-      discovered: false
-    },
-    {
-      id: '2',
-      name: 'Ironhold',  // Fantasy name for New York
+      name: 'Frostspire',  // New York
       latitude: 40.7128,
       longitude: -74.0060,
       radius: 3,
-      discovered: false
+      discovered: false,
+      realm: 'Northreach',
+      territory: 'Frosthold Kingdom'
     },
     {
-      id: '3',
-      name: 'Mistpeak',  // Fantasy name for San Francisco
-      latitude: 37.7749,
-      longitude: -122.4194,
-      radius: 2,
-      discovered: false
-    },
-    {
-      id: '4',
-      name: 'Stormhaven',  // Fantasy name for Chicago
-      latitude: 41.8781,
-      longitude: -87.6298,
-      radius: 2.5,
-      discovered: false
-    },
-    {
-      id: '5',
-      name: 'Sunreach',  // Fantasy name for Los Angeles
+      id: '2',
+      name: 'Embergate',  // Los Angeles
       latitude: 34.0522,
       longitude: -118.2437,
       radius: 3,
-      discovered: false
+      discovered: false,
+      realm: 'Northreach',
+      territory: 'Sunfire Dominion'
+    },
+    
+    // Europe / Eldoria
+    {
+      id: '3',
+      name: 'Mistral Harbor',  // London
+      latitude: 51.5074,
+      longitude: -0.1278,
+      radius: 2.5,
+      discovered: false,
+      realm: 'Eldoria',
+      territory: 'Mistral Isles'
+    },
+    {
+      id: '4',
+      name: 'Luminara',  // Paris
+      latitude: 48.8566,
+      longitude: 2.3522,
+      radius: 2,
+      discovered: false,
+      realm: 'Eldoria',
+      territory: 'Lumina Principality'
+    },
+    
+    // Asia / Dragonspine
+    {
+      id: '5',
+      name: 'Jade Citadel',  // Beijing
+      latitude: 39.9042,
+      longitude: 116.4074,
+      radius: 3,
+      discovered: false,
+      realm: 'Dragonspine',
+      territory: 'Jade Empire'
+    },
+    {
+      id: '6',
+      name: 'Skyfall',  // Tokyo
+      latitude: 35.6762,
+      longitude: 139.6503,
+      radius: 2.5,
+      discovered: false,
+      realm: 'Dragonspine',
+      territory: 'Cloudspire Shogunate'
+    },
+    
+    // Africa / Sunreach
+    {
+      id: '7',
+      name: 'Desert Crown',  // Cairo
+      latitude: 30.0444,
+      longitude: 31.2357,
+      radius: 2.8,
+      discovered: false,
+      realm: 'Sunreach',
+      territory: 'Golden Sands Caliphate'
+    },
+    
+    // Australia / Tideholm
+    {
+      id: '8',
+      name: 'Coral Keep',  // Sydney
+      latitude: -33.8688,
+      longitude: 151.2093,
+      radius: 2.3,
+      discovered: false,
+      realm: 'Tideholm',
+      territory: 'Coral Kingdom'
+    },
+    
+    // South America / Verdantia
+    {
+      id: '9',
+      name: 'Emerald Haven',  // Rio de Janeiro
+      latitude: -22.9068,
+      longitude: -43.1729,
+      radius: 2.6,
+      discovered: false,
+      realm: 'Verdantia',
+      territory: 'Emerald Canopy'
+    },
+    {
+      id: '10',
+      name: 'Silverstream',  // Buenos Aires
+      latitude: -34.6037,
+      longitude: -58.3816,
+      radius: 2.4,
+      discovered: false,
+      realm: 'Verdantia',
+      territory: 'Silver Plains'
     }
   ];
 
@@ -244,7 +315,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onLocationDiscovered({...city, discovered: true});
         
         toast(`🏰 You discovered ${city.name}!`, {
-          description: "This territory is now permanently unlocked on your map.",
+          description: `Territory: ${city.territory} in the Realm of ${city.realm}`,
           duration: 5000,
           className: "bg-lorequest-dark border border-lorequest-gold text-lorequest-gold"
         });

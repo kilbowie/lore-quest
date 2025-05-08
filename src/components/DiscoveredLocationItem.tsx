@@ -29,7 +29,14 @@ const DiscoveredLocationItem: React.FC<DiscoveredLocationItemProps> = ({
         </div>
         <div>
           <h3 className="text-sm font-medium text-lorequest-gold">{location.name}</h3>
-          <p className="text-xs text-lorequest-muted">Discovered Territory</p>
+          <div className="flex flex-col">
+            <p className="text-xs text-lorequest-muted">
+              {location.territory}
+            </p>
+            <p className="text-xs italic text-lorequest-parchment/70">
+              Realm of {location.realm}
+            </p>
+          </div>
         </div>
       </div>
       

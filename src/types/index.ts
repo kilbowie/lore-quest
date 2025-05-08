@@ -21,4 +21,9 @@ export interface ExplorationStats {
   totalLocations: number;
   discoveredLocations: number;
   percentExplored: number;
+  // New fields for tracking continents and realms
+  totalContinents: number;
+  discoveredContinents: number;
+  totalRealms: number;
+  discoveredRealms: number;
 }

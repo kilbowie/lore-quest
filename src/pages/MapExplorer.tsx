@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -22,13 +21,27 @@ const MapExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Total number of locations (in a real app would come from API)
-  const totalLocations = 9; // Updated to match our new UK locations count
+  const totalLocations = 9; // UK cities
+  const totalRealms = 4;    // England, Scotland, Wales, Northern Ireland
+  const totalContinents = 1; // Just the UK as our continent
+  
+  // Calculate all discovered realms
+  const discoveredRealms = discoveredLocations.length > 0 
+    ? [...new Set(discoveredLocations.map(loc => loc.realm))].length 
+    : 0;
+  
+  // Since we only have one continent (UK), it's discovered if we have any locations
+  const discoveredContinents = discoveredLocations.length > 0 ? 1 : 0;
   
   // Calculate exploration stats
   const stats: StatsType = {
     totalLocations,
     discoveredLocations: discoveredLocations.length,
-    percentExplored: (discoveredLocations.length / totalLocations) * 100
+    percentExplored: (discoveredLocations.length / totalLocations) * 100,
+    totalRealms,
+    discoveredRealms,
+    totalContinents,
+    discoveredContinents
   };
   
   // Group locations by realm (UK countries)
@@ -168,7 +181,7 @@ const MapExplorer: React.FC = () => {
   // If no API key is set, show the input form with fantasy styling
   if (!mapboxApiKey) {
     return (
-      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDMwYTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
+      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
         <div className="max-w-md w-full p-6 bg-lorequest-dark/90 backdrop-blur-md border border-lorequest-gold/30 rounded-lg shadow-2xl">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>

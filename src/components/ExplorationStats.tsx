@@ -2,7 +2,7 @@
 import React from 'react';
 import { ExplorationStats as StatsType } from '../types';
 import { Progress } from '@/components/ui/progress';
-import { Map, Scroll } from 'lucide-react';
+import { Map, Scroll, Layers, Flag } from 'lucide-react';
 
 interface ExplorationStatsProps {
   stats: StatsType;
@@ -17,14 +17,46 @@ const ExplorationStats: React.FC<ExplorationStatsProps> = ({ stats }) => {
       </h3>
       
       <div className="grid gap-3">
+        {/* Continent progress */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-lorequest-parchment">Territories Discovered</span>
+          <span className="text-sm text-lorequest-parchment flex items-center gap-1">
+            <Map size={14} className="text-lorequest-gold" />
+            Continents
+          </span>
+          <span className="font-medium text-lorequest-gold">{stats.discoveredContinents} of {stats.totalContinents}</span>
+        </div>
+        
+        <Progress 
+          value={(stats.discoveredContinents / stats.totalContinents) * 100} 
+          className="h-1.5 bg-muted"
+        />
+        
+        {/* Realm progress */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-sm text-lorequest-parchment flex items-center gap-1">
+            <Flag size={14} className="text-lorequest-gold" />
+            Realms
+          </span>
+          <span className="font-medium text-lorequest-gold">{stats.discoveredRealms} of {stats.totalRealms}</span>
+        </div>
+        
+        <Progress 
+          value={(stats.discoveredRealms / stats.totalRealms) * 100} 
+          className="h-1.5 bg-muted"
+        />
+        
+        {/* Territory progress */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-sm text-lorequest-parchment flex items-center gap-1">
+            <Layers size={14} className="text-lorequest-gold" />
+            Territories
+          </span>
           <span className="font-medium text-lorequest-gold">{stats.discoveredLocations} of {stats.totalLocations}</span>
         </div>
         
         <Progress 
           value={stats.percentExplored} 
-          className="h-2 bg-muted"
+          className="h-1.5 bg-muted"
         />
         
         <div className="text-xs text-lorequest-gold text-right">

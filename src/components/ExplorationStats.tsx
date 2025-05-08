@@ -2,6 +2,7 @@
 import React from 'react';
 import { ExplorationStats as StatsType } from '../types';
 import { Progress } from '@/components/ui/progress';
+import { Map, Scroll } from 'lucide-react';
 
 interface ExplorationStatsProps {
   stats: StatsType;
@@ -9,24 +10,30 @@ interface ExplorationStatsProps {
 
 const ExplorationStats: React.FC<ExplorationStatsProps> = ({ stats }) => {
   return (
-    <div className="bg-card/80 backdrop-blur-sm p-4 rounded-lg shadow-lg">
-      <h3 className="text-lg font-bold mb-2">Exploration Progress</h3>
+    <div className="bg-lorequest-dark/90 backdrop-blur-sm p-4 rounded-lg border border-lorequest-gold/30 shadow-lg">
+      <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-lorequest-gold">
+        <Scroll size={18} className="text-lorequest-gold" />
+        Exploration Progress
+      </h3>
       
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm">Discovered</span>
-          <span className="font-medium">{stats.discoveredLocations} of {stats.totalLocations}</span>
+          <span className="text-sm text-lorequest-parchment">Territories Discovered</span>
+          <span className="font-medium text-lorequest-gold">{stats.discoveredLocations} of {stats.totalLocations}</span>
         </div>
         
         <Progress 
           value={stats.percentExplored} 
-          className="h-2 bg-muted bg-gradient-to-r from-explorer-primary to-explorer-secondary"
+          className="h-2 bg-muted"
         />
         
-        <div className="text-xs text-muted-foreground text-right">
-          {stats.percentExplored.toFixed(0)}% explored
+        <div className="text-xs text-lorequest-gold text-right">
+          {stats.percentExplored.toFixed(0)}% of the world explored
         </div>
       </div>
+      
+      {/* Fantasy decorative elements */}
+      <div className="fantasy-divider mt-3"></div>
     </div>
   );
 };

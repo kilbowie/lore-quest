@@ -65,10 +65,17 @@ export default {
 				},
 				explorer: {
 					fog: '#1A1F2C',
-					primary: '#0EA5E9',
-					secondary: '#8B5CF6',
+					primary: '#D4AF37',  // Changed to gold color
+					secondary: '#9b87f5',
 					discovered: '#F97316',
-					accent: '#33C3F0'
+					accent: '#D4AF37',    // Changed to gold color
+				},
+				lorequest: {
+					dark: '#0D1117',      // Dark blue/black from brand
+					gold: '#D4AF37',      // Gold from brand
+					parchment: '#F5E9C9', // Light parchment color
+					highlight: '#FFC857', // Brighter gold for highlights
+					muted: '#8E9196'      // Muted text color
 				}
 			},
 			borderRadius: {
@@ -105,10 +112,20 @@ export default {
 				},
 				'pulse-glow': {
 					'0%, 100%': {
-						opacity: '1' 
+						opacity: '1',
+						boxShadow: '0 0 10px 2px rgba(212, 175, 55, 0.7)'
 					},
 					'50%': {
-						opacity: '0.7'
+						opacity: '0.7',
+						boxShadow: '0 0 15px 5px rgba(212, 175, 55, 0.3)'
+					}
+				},
+				'float': {
+					'0%, 100%': {
+						transform: 'translateY(0)'
+					},
+					'50%': {
+						transform: 'translateY(-5px)'
 					}
 				}
 			},
@@ -116,7 +133,11 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'reveal-area': 'reveal-area 0.5s ease-out forwards',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'float': 'float 3s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'parchment': "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjRjVFOUM5Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDVMNSAwWk02IDRMNCA2Wk0tMSAxTDEgLTFaIiBzdHJva2U9IiNlOWRkYjUiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')",
 			}
 		}
 	},

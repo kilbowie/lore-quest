@@ -8,7 +8,7 @@ import DiscoveredLocationItem from '../components/DiscoveredLocationItem';
 import { getCurrentPosition, watchPosition, clearPositionWatch } from '../utils/geoUtils';
 import { loadDiscoveredLocations, addDiscoveredLocation } from '../utils/storageUtils';
 import { Button } from '@/components/ui/button';
-import { Navigation } from 'lucide-react';
+import { Compass, Map, Scroll } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 const API_KEY_STORAGE_KEY = 'mapbox_api_key';
@@ -146,33 +146,49 @@ const MapExplorer: React.FC = () => {
   };
   
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-lorequest-dark">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-full bg-lorequest-dark border-2 border-t-lorequest-gold animate-spin mx-auto mb-4"></div>
+          <p className="text-lorequest-gold font-bold">Loading your quest map...</p>
+        </div>
+      </div>
+    );
   }
   
-  // If no API key is set, show the input form
+  // If no API key is set, show the input form with fantasy styling
   if (!mapboxApiKey) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-background to-accent/20 p-4">
-        <ApiKeyInput onSubmit={handleApiKeySubmit} />
+      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDMwYTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
+        <div className="max-w-md w-full p-6 bg-lorequest-dark/90 backdrop-blur-md border border-lorequest-gold/30 rounded-lg shadow-2xl">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>
+            <div className="fantasy-divider mb-4"></div>
+            <p className="text-lorequest-parchment">Begin your exploration of the realm</p>
+          </div>
+          <ApiKeyInput onSubmit={handleApiKeySubmit} />
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 bg-card/80 backdrop-blur-sm z-10 border-b">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <Navigation className="text-explorer-primary" size={24} />
-          Fog Explorer
+    <div className="h-screen flex flex-col overflow-hidden bg-lorequest-dark">
+      {/* Header with fantasy styling */}
+      <header className="flex items-center justify-between p-4 bg-lorequest-dark/80 backdrop-blur-sm z-10 border-b border-lorequest-gold/30">
+        <h1 className="text-2xl font-bold flex items-center gap-2 text-lorequest-gold">
+          <Map className="text-lorequest-gold" size={24} />
+          LORE QUEST
         </h1>
         
         <Button
           variant={isTracking ? "destructive" : "default"}
           onClick={toggleTracking}
           size="sm"
+          className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
         >
-          {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+          <Compass className="mr-1" size={16} />
+          {isTracking ? 'End Journey' : 'Begin Journey'}
         </Button>
       </header>
       
@@ -188,18 +204,23 @@ const MapExplorer: React.FC = () => {
           />
         </div>
         
-        {/* Sidebar */}
-        <div className="w-72 bg-card/80 backdrop-blur-md border-l overflow-y-auto p-4 flex flex-col gap-4">
+        {/* Sidebar with fantasy styling */}
+        <div className="w-72 bg-lorequest-dark/80 backdrop-blur-md border-l border-lorequest-gold/30 overflow-y-auto p-4 flex flex-col gap-4">
           {/* Stats panel */}
           <ExplorationStats stats={stats} />
           
           {/* Discovered locations */}
           <div className="flex-1">
-            <h2 className="text-lg font-bold mb-2">Discovered Areas</h2>
+            <h2 className="text-lg font-bold mb-3 text-lorequest-gold flex items-center gap-2">
+              <Scroll size={18} />
+              Discovered Territories
+            </h2>
             {discoveredLocations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No locations discovered yet. Start exploring!
-              </p>
+              <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
+                <p className="text-sm text-lorequest-parchment">
+                  No territories discovered yet. Begin your journey to uncover the mysteries of this realm!
+                </p>
+              </div>
             ) : (
               <div className="grid gap-2">
                 {discoveredLocations.map((location) => (
@@ -213,14 +234,17 @@ const MapExplorer: React.FC = () => {
             )}
           </div>
           
-          {/* Help text */}
-          <div className="text-xs text-muted-foreground mt-auto pt-4 border-t">
-            <p className="mb-2"><strong>How to play:</strong></p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li>Visit locations in real life to unlock them on the map</li>
-              <li>Discovered areas stay unlocked permanently</li>
-              <li>Get within 0.5 miles of a city center to unlock it</li>
+          {/* Help text with fantasy styling */}
+          <div className="text-xs text-lorequest-muted mt-auto pt-4 border-t border-lorequest-gold/20">
+            <p className="mb-2 text-lorequest-gold"><strong>How to Quest:</strong></p>
+            <ul className="space-y-1 list-disc pl-4">
+              <li>Venture forth in the real world to discover new territories</li>
+              <li>Discovered realms remain unlocked in your chronicles</li>
+              <li>Journey within 0.5 miles of a settlement to claim it</li>
+              <li>Complete your map to become a legendary explorer</li>
             </ul>
+            <div className="fantasy-divider my-3"></div>
+            <p className="text-center text-lorequest-gold/60 text-[10px]">REAL-WORLD ADVENTURES. LEGENDARY REWARDS.</p>
           </div>
         </div>
       </div>

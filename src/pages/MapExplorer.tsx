@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Location, UserLocation, ExplorationStats } from '../types';
+import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
 import ApiKeyInput from '../components/ApiKeyInput';
 import ExplorationStats from '../components/ExplorationStats';
@@ -25,7 +25,7 @@ const MapExplorer: React.FC = () => {
   const totalLocations = 5;
   
   // Calculate exploration stats
-  const stats: ExplorationStats = {
+  const stats: StatsType = {
     totalLocations,
     discoveredLocations: discoveredLocations.length,
     percentExplored: (discoveredLocations.length / totalLocations) * 100

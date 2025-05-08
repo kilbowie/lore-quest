@@ -20,8 +20,7 @@ const ExplorationStats: React.FC<ExplorationStatsProps> = ({ stats }) => {
         
         <Progress 
           value={stats.percentExplored} 
-          className="h-2 bg-muted"
-          indicatorClassName="bg-gradient-to-r from-explorer-primary to-explorer-secondary"
+          className="h-2 bg-muted bg-gradient-to-r from-explorer-primary to-explorer-secondary"
         />
         
         <div className="text-xs text-muted-foreground text-right">

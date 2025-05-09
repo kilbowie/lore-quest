@@ -22,7 +22,7 @@ const MapExplorer: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Total number of locations (updated to match our expanded list)
-  const totalLocations = 24; // Updated from 9 to 24 for all UK cities
+  const totalLocations = 76; // Updated to include all 52 England cities plus the existing 24 locations
   const totalRealms = 4;    // England, Scotland, Wales, Northern Ireland
   const totalContinents = 1; // Just the UK as our continent
   

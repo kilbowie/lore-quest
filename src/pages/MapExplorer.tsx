@@ -8,18 +8,29 @@ import DiscoveredLocationItem from '../components/DiscoveredLocationItem';
 import { getCurrentPosition, watchPosition, clearPositionWatch } from '../utils/geoUtils';
 import { loadDiscoveredLocations, addDiscoveredLocation } from '../utils/storageUtils';
 import { Button } from '@/components/ui/button';
-import { Compass, Map, Scroll } from 'lucide-react';
+import { Compass, Map as MapIcon, Scroll } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
+
+// New imports for enhanced features
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import AuthForms from '../components/AuthForms';
+import UserProfile from '../components/UserProfile';
+import UserDashboard from '../components/UserDashboard';
+import { updateAchievementsOnDiscovery } from '../utils/achievementsUtils';
+import { initializeAchievements } from '../utils/achievementsUtils';
 
 const API_KEY_STORAGE_KEY = 'mapbox_api_key';
 
-const MapExplorer: React.FC = () => {
+const MapExplorerContent: React.FC = () => {
+  const { isAuthenticated, user, updateCurrentUser } = useAuth();
   const [mapboxApiKey, setMapboxApiKey] = useState<string>('');
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [discoveredLocations, setDiscoveredLocations] = useState<Location[]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [isTracking, setIsTracking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDashboardOpen, setIsDashboardOpen] = useState<boolean>(false);
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
   
   // Total number of locations (updated to include Ireland)
   const totalLocations = 90; // Updated to include all 76 UK locations plus 14 Irish locations
@@ -67,7 +78,50 @@ const MapExplorer: React.FC = () => {
     }
     
     setIsLoading(false);
+    
+    // Fetch all locations from MapComponent to use for achievement calculations
+    import('../components/MapComponent').then(module => {
+      // This is just to get the locations array - replace with your actual method
+      // to get all locations
+      setAllLocations(module.default.cityLocations || []);
+    });
   }, []);
+  
+  // Update user's discovered locations when they log in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Initialize achievements if not already done
+      let updatedUser = user;
+      if (!user.achievements || user.achievements.length === 0) {
+        updatedUser = initializeAchievements(user);
+        updateCurrentUser(updatedUser);
+      }
+      
+      // Sync discovered locations with user's discoveries
+      if (discoveredLocations.length > 0) {
+        const userDiscoveredIds = new Set(updatedUser.discoveredLocations);
+        let hasNewDiscoveries = false;
+        
+        discoveredLocations.forEach(location => {
+          if (!userDiscoveredIds.has(location.id)) {
+            userDiscoveredIds.add(location.id);
+            hasNewDiscoveries = true;
+            
+            // Update achievements for each newly discovered location
+            updatedUser = updateAchievementsOnDiscovery(updatedUser, location, allLocations);
+          }
+        });
+        
+        if (hasNewDiscoveries) {
+          updatedUser = {
+            ...updatedUser,
+            discoveredLocations: Array.from(userDiscoveredIds)
+          };
+          updateCurrentUser(updatedUser);
+        }
+      }
+    }
+  }, [isAuthenticated, user, discoveredLocations, allLocations]);
   
   // Handle API key submission
   const handleApiKeySubmit = (apiKey: string) => {
@@ -82,6 +136,23 @@ const MapExplorer: React.FC = () => {
   const handleLocationDiscovered = (location: Location) => {
     const updatedLocations = addDiscoveredLocation(location);
     setDiscoveredLocations(updatedLocations);
+    
+    // Update user's discovered locations and achievements if logged in
+    if (isAuthenticated && user) {
+      // Check if location is already in user's discoveries
+      if (!user.discoveredLocations.includes(location.id)) {
+        const updatedUser = updateAchievementsOnDiscovery(
+          {
+            ...user,
+            discoveredLocations: [...user.discoveredLocations, location.id]
+          },
+          location,
+          allLocations
+        );
+        
+        updateCurrentUser(updatedUser);
+      }
+    }
   };
   
   // Start tracking user location
@@ -170,12 +241,33 @@ const MapExplorer: React.FC = () => {
     toast(`Centering map on ${location.name}`);
   };
   
+  // Toggle dashboard
+  const toggleDashboard = () => {
+    setIsDashboardOpen(!isDashboardOpen);
+  };
+  
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-lorequest-dark">
         <div className="text-center">
           <div className="h-12 w-12 rounded-full bg-lorequest-dark border-2 border-t-lorequest-gold animate-spin mx-auto mb-4"></div>
           <p className="text-lorequest-gold font-bold">Loading your quest map...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If user is not authenticated, show login/signup form
+  if (!isAuthenticated) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>
+            <div className="fantasy-divider mb-6"></div>
+            <p className="text-lorequest-parchment">Create an account or sign in to begin your adventure</p>
+          </div>
+          <AuthForms />
         </div>
       </div>
     );
@@ -189,7 +281,7 @@ const MapExplorer: React.FC = () => {
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>
             <div className="fantasy-divider mb-4"></div>
-            <p className="text-lorequest-parchment">Begin your exploration of the realm</p>
+            <p className="text-lorequest-parchment">Welcome back, {user.name}! Begin your exploration of the realm</p>
           </div>
           <ApiKeyInput onSubmit={handleApiKeySubmit} />
         </div>
@@ -202,19 +294,23 @@ const MapExplorer: React.FC = () => {
       {/* Header with fantasy styling */}
       <header className="flex items-center justify-between p-4 bg-lorequest-dark/80 backdrop-blur-sm z-10 border-b border-lorequest-gold/30">
         <h1 className="text-2xl font-bold flex items-center gap-2 text-lorequest-gold">
-          <Map className="text-lorequest-gold" size={24} />
+          <MapIcon className="text-lorequest-gold" size={24} />
           LORE QUEST UK & IRELAND
         </h1>
         
-        <Button
-          variant={isTracking ? "destructive" : "default"}
-          onClick={toggleTracking}
-          size="sm"
-          className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
-        >
-          <Compass className="mr-1" size={16} />
-          {isTracking ? 'End Journey' : 'Begin Journey'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant={isTracking ? "destructive" : "default"}
+            onClick={toggleTracking}
+            size="sm"
+            className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
+          >
+            <Compass className="mr-1" size={16} />
+            {isTracking ? 'End Quest' : 'Begin Quest'}
+          </Button>
+          
+          <UserProfile onToggleDashboard={toggleDashboard} />
+        </div>
       </header>
       
       {/* Main content */}
@@ -283,7 +379,19 @@ const MapExplorer: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* User Dashboard (when open) */}
+      {isDashboardOpen && <UserDashboard onClose={toggleDashboard} />}
     </div>
+  );
+};
+
+// Wrap the component with AuthProvider
+const MapExplorer: React.FC = () => {
+  return (
+    <AuthProvider>
+      <MapExplorerContent />
+    </AuthProvider>
   );
 };
 

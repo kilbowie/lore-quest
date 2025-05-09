@@ -28,3 +28,72 @@ export interface ExplorationStats {
   totalRealms: number;
   discoveredRealms: number;
 }
+
+// User account types
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  profilePicture?: string;
+  level: number;
+  experience: number;
+  inventory: InventoryItem[];
+  discoveredLocations: string[]; // IDs of discovered locations
+  achievements: UserAchievement[];
+  activeQuests: string[]; // IDs of quests being tracked
+  completedQuests: string[]; // IDs of completed quests
+  createdAt: Date;
+}
+
+export interface InventoryItem {
+  id: string;
+  type: 'rune' | 'map' | 'compass' | 'other';
+  name: string;
+  description?: string;
+  quantity: number;
+}
+
+export interface Achievement {
+  id: string;
+  type: 'territory' | 'realm' | 'continent' | 'meta';
+  name: string;
+  description: string;
+  targetId?: string; // ID of the location, realm or continent
+  targetCount?: number; // For meta achievements (e.g. discover all territories in a realm)
+  xpReward: number;
+  icon?: string;
+}
+
+export interface UserAchievement {
+  achievementId: string;
+  completed: boolean;
+  progress: number;
+  completedAt?: Date;
+  isTracked: boolean;
+}
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  type: 'discovery' | 'collection' | 'exploration';
+  targetId?: string;
+  targetCount?: number;
+  xpReward: number;
+  completed: boolean;
+  progress: number;
+}
+
+// Constants for leveling system
+export const LEVEL_CONSTANTS = {
+  BASE_XP: 100,
+  SCALING_FACTOR: 1.5,
+  MAX_LEVEL: 100
+};
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+}

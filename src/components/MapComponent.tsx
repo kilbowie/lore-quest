@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -64,7 +65,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       description: 'A port city with tales of seafaring adventures and hidden treasures'
     },
     
-    // Scotland
+    // Scotland - Adding the additional territories
     {
       id: '4',
       name: 'Edinburgh',
@@ -87,8 +88,74 @@ const MapComponent: React.FC<MapComponentProps> = ({
       realm: 'Scotland',
       description: 'A city of resilience and magic, where ancient clans once gathered'
     },
+    {
+      id: '10',
+      name: 'Perth',
+      territory: 'Perth',
+      latitude: 56.3950,
+      longitude: -3.4308,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'The ancient capital of Scotland, nestled between rolling hills and mystical rivers'
+    },
+    {
+      id: '11',
+      name: 'Aberdeen',
+      territory: 'Aberdeen',
+      latitude: 57.1497,
+      longitude: -2.0943,
+      radius: 1.8,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'The Silver City by the Sea, guardian of the eastern shores'
+    },
+    {
+      id: '12',
+      name: 'Inverness',
+      territory: 'Inverness',
+      latitude: 57.4778,
+      longitude: -4.2247,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'Gateway to the Highlands, where the Loch Ness monster still lurks in deep waters'
+    },
+    {
+      id: '13',
+      name: 'Stirling',
+      territory: 'Stirling',
+      latitude: 56.1165,
+      longitude: -3.9369,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'The key to the kingdom, where battles determined the fate of nations'
+    },
+    {
+      id: '14',
+      name: 'Dundee',
+      territory: 'Dundee',
+      latitude: 56.4620,
+      longitude: -2.9707,
+      radius: 1.7,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'City of discovery, where inventors and explorers changed the world'
+    },
+    {
+      id: '15',
+      name: 'Dunfermline',
+      territory: 'Dunfermline',
+      latitude: 56.0719,
+      longitude: -3.4319,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Scotland',
+      description: 'Ancient capital of Scotland, birthplace of kings and heroes'
+    },
     
-    // Wales
+    // Wales - Adding the additional territories
     {
       id: '6',
       name: 'Cardiff',
@@ -111,8 +178,63 @@ const MapComponent: React.FC<MapComponentProps> = ({
       realm: 'Wales',
       description: 'Where the sea brings both fortune and ancient curses'
     },
+    {
+      id: '16',
+      name: 'Newport',
+      territory: 'Newport',
+      latitude: 51.5842,
+      longitude: -2.9977,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Wales',
+      description: 'The gateway to Wales, where ancient rivers meet the bustling sea'
+    },
+    {
+      id: '17',
+      name: 'Wrexham',
+      territory: 'Wrexham',
+      latitude: 53.0428,
+      longitude: -2.9926,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Wales',
+      description: 'The northern sentinel of Wales, guarding ancient wisdom and crafts'
+    },
+    {
+      id: '18',
+      name: 'Bangor',
+      territory: 'Bangor',
+      latitude: 53.2263,
+      longitude: -4.1283,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Wales',
+      description: 'The city of lore, where druids once gathered to share ancient knowledge'
+    },
+    {
+      id: '19',
+      name: 'St Asaph',
+      territory: 'St Asaph',
+      latitude: 53.2580,
+      longitude: -3.4433,
+      radius: 1.2,
+      discovered: false,
+      realm: 'Wales',
+      description: 'The smallest city in Wales, blessed with sacred springs and healing waters'
+    },
+    {
+      id: '20',
+      name: 'St Davids',
+      territory: 'St Davids',
+      latitude: 51.8827,
+      longitude: -5.2660,
+      radius: 1.2,
+      discovered: false,
+      realm: 'Wales',
+      description: 'The westernmost sanctuary, where pilgrims sought spiritual enlightenment'
+    },
     
-    // Northern Ireland
+    // Northern Ireland - Adding the additional territories
     {
       id: '8',
       name: 'Belfast',
@@ -134,6 +256,50 @@ const MapComponent: React.FC<MapComponentProps> = ({
       discovered: false,
       realm: 'Northern Ireland',
       description: 'Ancient stone circles mark this land of myth and mystery'
+    },
+    {
+      id: '21',
+      name: 'Armagh',
+      territory: 'Armagh',
+      latitude: 54.3503,
+      longitude: -6.6528,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Northern Ireland',
+      description: 'Spiritual capital of Ireland, where saints and scholars shared ancient wisdom'
+    },
+    {
+      id: '22',
+      name: 'Newry',
+      territory: 'Newry',
+      latitude: 54.1753,
+      longitude: -6.3402,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Northern Ireland',
+      description: 'The gateway between worlds, where mountains meet the sea'
+    },
+    {
+      id: '23',
+      name: 'Lisburn',
+      territory: 'Lisburn',
+      latitude: 54.5162,
+      longitude: -6.0578,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Northern Ireland',
+      description: 'City of light and linen, where skilled artisans crafted magical garments'
+    },
+    {
+      id: '24',
+      name: 'Bangor',
+      territory: 'Bangor',
+      latitude: 54.6573,
+      longitude: -5.6697,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Northern Ireland',
+      description: 'A seaside haven where merfolk are said to visit on moonlit nights'
     }
   ];
 

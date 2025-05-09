@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -872,6 +871,176 @@ const MapComponent: React.FC<MapComponentProps> = ({
       discovered: false,
       realm: 'Northern Ireland',
       description: 'A seaside haven where merfolk are said to visit on moonlit nights'
+    },
+    
+    // Ireland - Adding as a new continent with Irish cities as territories
+    {
+      id: '77',
+      name: 'Dublin',
+      territory: 'Dublin',
+      latitude: 53.3498,
+      longitude: -6.2603,
+      radius: 2.0,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'The ancient capital where Celtic myths come alive in bustling streets'
+    },
+    {
+      id: '78',
+      name: 'Galway',
+      territory: 'Galway',
+      latitude: 53.2707,
+      longitude: -9.0568,
+      radius: 1.7,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'A coastal haven where music and magic flow through cobbled streets'
+    },
+    {
+      id: '79',
+      name: 'Limerick',
+      territory: 'Limerick',
+      latitude: 52.6638,
+      longitude: -8.6267,
+      radius: 1.7,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'River city of verse and rhyme where words hold ancient power'
+    },
+    {
+      id: '80',
+      name: 'Kilkenny',
+      territory: 'Kilkenny',
+      latitude: 52.6541,
+      longitude: -7.2448,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Medieval stronghold with enchanted castle walls and secret passages'
+    },
+    {
+      id: '81',
+      name: 'Cork',
+      territory: 'Cork',
+      latitude: 51.8979,
+      longitude: -8.4706,
+      radius: 1.8,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Southern harbor city where rebel spirits and sea magic intertwine'
+    },
+    {
+      id: '82',
+      name: 'Killarney',
+      territory: 'Killarney',
+      latitude: 52.0599,
+      longitude: -9.5044,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Lakeside sanctuary surrounded by mystical forests and fairy circles'
+    },
+    {
+      id: '83',
+      name: 'Kinsale',
+      territory: 'Kinsale',
+      latitude: 51.7064,
+      longitude: -8.5307,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Colorful harbor where seafarers trade tales of merfolk and treasure'
+    },
+    {
+      id: '84',
+      name: 'Dingle',
+      territory: 'Dingle',
+      latitude: 52.1408,
+      longitude: -10.2686,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Westernmost settlement where dolphins guide ships with ancient wisdom'
+    },
+    {
+      id: '85',
+      name: 'Westport',
+      territory: 'Westport',
+      latitude: 53.8026,
+      longitude: -9.5148,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'A coastal gem nestled beneath a sacred mountain of legend'
+    },
+    {
+      id: '86',
+      name: 'Waterford',
+      territory: 'Waterford',
+      latitude: 52.2593,
+      longitude: -7.1128,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Crystal city where glass-crafters capture moonlight in their wares'
+    },
+    {
+      id: '87',
+      name: 'Tralee',
+      territory: 'Tralee',
+      latitude: 52.2704,
+      longitude: -9.7026,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Kingdom\'s capital where ancient royalty still walks in twilight hours'
+    },
+    {
+      id: '88',
+      name: 'Athlone',
+      territory: 'Athlone',
+      latitude: 53.4233,
+      longitude: -7.9406,
+      radius: 1.5,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'River fortress at Ireland\'s heart where east and west magics converge'
+    },
+    {
+      id: '89',
+      name: 'Clifden',
+      territory: 'Clifden',
+      latitude: 53.4889,
+      longitude: -10.0204,
+      radius: 1.4,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Sky road settlement where the veil between worlds grows thin at dusk'
+    },
+    {
+      id: '90',
+      name: 'Sligo',
+      territory: 'Sligo',
+      latitude: 54.2697,
+      longitude: -8.4748,
+      radius: 1.6,
+      discovered: false,
+      realm: 'Ireland',
+      continent: 'Ireland',
+      description: 'Yeats\' inspiration where poetry and supernatural beings dance together'
     }
   ];
 
@@ -1090,7 +1259,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       <div className="absolute bottom-3 left-3 bg-lorequest-dark/80 backdrop-blur-sm p-2 rounded border border-lorequest-gold/50 text-xs">
         <div className="flex items-center gap-2 text-lorequest-gold">
           <Map size={14} />
-          <span>United Kingdom</span>
+          <span>United Kingdom & Ireland</span>
         </div>
       </div>
     </div>

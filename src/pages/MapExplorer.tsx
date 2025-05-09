@@ -21,18 +21,20 @@ const MapExplorer: React.FC = () => {
   const [isTracking, setIsTracking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
-  // Total number of locations (updated to match our expanded list)
-  const totalLocations = 76; // Updated to include all 52 England cities plus the existing 24 locations
-  const totalRealms = 4;    // England, Scotland, Wales, Northern Ireland
-  const totalContinents = 1; // Just the UK as our continent
+  // Total number of locations (updated to include Ireland)
+  const totalLocations = 90; // Updated to include all 76 UK locations plus 14 Irish locations
+  const totalRealms = 5;    // England, Scotland, Wales, Northern Ireland, and Ireland
+  const totalContinents = 2; // UK and Ireland
   
   // Calculate all discovered realms
   const discoveredRealms = discoveredLocations.length > 0 
     ? [...new Set(discoveredLocations.map(loc => loc.realm))].length 
     : 0;
   
-  // Since we only have one continent (UK), it's discovered if we have any locations
-  const discoveredContinents = discoveredLocations.length > 0 ? 1 : 0;
+  // Calculate discovered continents (UK and/or Ireland)
+  const discoveredContinents = discoveredLocations.length > 0 
+    ? [...new Set(discoveredLocations.map(loc => loc.continent || 'UK'))].length 
+    : 0;
   
   // Calculate exploration stats
   const stats: StatsType = {
@@ -45,7 +47,7 @@ const MapExplorer: React.FC = () => {
     discoveredContinents
   };
   
-  // Group locations by realm (UK countries)
+  // Group locations by realm (UK countries and Ireland)
   const locationsByRealm = discoveredLocations.reduce((acc, location) => {
     if (!acc[location.realm]) {
       acc[location.realm] = [];
@@ -201,7 +203,7 @@ const MapExplorer: React.FC = () => {
       <header className="flex items-center justify-between p-4 bg-lorequest-dark/80 backdrop-blur-sm z-10 border-b border-lorequest-gold/30">
         <h1 className="text-2xl font-bold flex items-center gap-2 text-lorequest-gold">
           <Map className="text-lorequest-gold" size={24} />
-          LORE QUEST UK
+          LORE QUEST UK & IRELAND
         </h1>
         
         <Button
@@ -242,7 +244,7 @@ const MapExplorer: React.FC = () => {
             {discoveredLocations.length === 0 ? (
               <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
                 <p className="text-sm text-lorequest-parchment">
-                  No territories discovered yet. Begin your journey to uncover the mysteries of the United Kingdom!
+                  No territories discovered yet. Begin your journey to uncover the mysteries of the United Kingdom and Ireland!
                 </p>
               </div>
             ) : (
@@ -271,10 +273,10 @@ const MapExplorer: React.FC = () => {
           <div className="text-xs text-lorequest-muted mt-auto pt-4 border-t border-lorequest-gold/20">
             <p className="mb-2 text-lorequest-gold"><strong>How to Quest:</strong></p>
             <ul className="space-y-1 list-disc pl-4">
-              <li>Venture forth in the UK to discover new territories</li>
-              <li>Each country in the UK is a Realm containing mystical Territories</li>
+              <li>Venture forth in the UK and Ireland to discover new territories</li>
+              <li>Each country is a Realm containing mystical Territories</li>
               <li>Journey within 0.5 miles of a location to claim it</li>
-              <li>Complete your map to become a legendary UK explorer</li>
+              <li>Complete your map to become a legendary explorer</li>
             </ul>
             <div className="fantasy-divider my-3"></div>
             <p className="text-center text-lorequest-gold/60 text-[10px]">REAL-WORLD ADVENTURES. LEGENDARY REWARDS.</p>

@@ -6,7 +6,8 @@ export interface Location {
   longitude: number;
   radius: number;         // in miles
   discovered: boolean;
-  realm: string;          // Country in UK (England, Scotland, Wales, Northern Ireland)
+  realm: string;          // Country in UK (England, Scotland, Wales, Northern Ireland) or Ireland
+  continent?: string;     // Continent (UK or Ireland)
   territory: string;      // City/town name
   description?: string;   // Optional description of the location
 }

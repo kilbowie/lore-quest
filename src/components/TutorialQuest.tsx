@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -138,6 +139,35 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
     setWalkingDistance(prev => prev + distanceAdded);
   };
   
+  const giveClassSpecificWeapon = (user: any, playerClass: PlayerClass) => {
+    if (!playerClass || !CLASS_DESCRIPTIONS[playerClass]) return user;
+    
+    const classInfo = CLASS_DESCRIPTIONS[playerClass];
+    const weapon = classInfo.initialWeapon;
+    
+    // Add the weapon to inventory as an equippable item
+    addItemToInventory(
+      user,
+      'weapon',
+      weapon.name,
+      `Your first weapon as a ${playerClass}. Grants +1 ${weapon.statBonus.attribute}.`,
+      1,
+      playerClass === 'Knight' ? '🗡️' : playerClass === 'Wizard' ? '🪄' : '🏹',
+      'none',
+      0,
+      true,
+      {
+        slot: 'mainWeapon',
+        attackType: weapon.attackType,
+        statBonuses: [{ attribute: weapon.statBonus.attribute, value: weapon.statBonus.value }],
+        requiredClass: playerClass,
+        requiredLevel: 1
+      }
+    );
+    
+    return user;
+  };
+  
   const completeTutorialQuest = () => {
     if (!user || !selectedClass) return;
     
@@ -149,26 +179,24 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
     setCompleted(true);
     
     // Set user class
-    const updatedUser = setUserClass(user.id, selectedClass);
+    let updatedUser = setUserClass(user.id, selectedClass);
+    
+    // Initialize equipment slots if they don't exist
+    if (!updatedUser.equipment) {
+      updatedUser.equipment = {};
+    }
     
     // Award XP to level up
-    const userWithXP = addExperience(updatedUser, TUTORIAL_XP_REWARD, 'Tutorial Completion');
+    updatedUser = addExperience(updatedUser, TUTORIAL_XP_REWARD, 'Tutorial Completion');
     
     // Add gold
-    userWithXP.gold = (userWithXP.gold || 0) + TUTORIAL_GOLD_REWARD;
+    updatedUser.gold = (updatedUser.gold || 0) + TUTORIAL_GOLD_REWARD;
     
-    // Add a weapon to the user's inventory
-    addItemToInventory(
-      userWithXP,
-      'weapon',
-      'Rusty Sword',
-      'Your first weapon, earned from completing the tutorial quest',
-      1,
-      '🗡️'
-    );
+    // Add class-specific weapon to the user's inventory
+    updatedUser = giveClassSpecificWeapon(updatedUser, selectedClass);
     
     // Update stats
-    updateUserStats(userWithXP, {
+    updateUserStats(updatedUser, {
       questsCompleted: 1,
       questXpEarned: TUTORIAL_XP_REWARD,
       totalXpEarned: TUTORIAL_XP_REWARD,
@@ -176,15 +204,72 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
       totalGoldEarned: TUTORIAL_GOLD_REWARD
     });
     
+    // Add starter quest for armor set
+    addStarterQuest(updatedUser);
+    
     // Mark tutorial as completed
-    completeTutorial(userWithXP.id);
-    updateCurrentUser({...userWithXP, tutorialCompleted: true});
+    completeTutorial(updatedUser.id);
+    updateCurrentUser({...updatedUser, tutorialCompleted: true});
     
     // Close the dialog after a delay to allow the user to see the completion message
     setTimeout(() => {
       setOpen(false);
       onComplete();
     }, 3000);
+  };
+  
+  const addStarterQuest = (user: any) => {
+    // Check if user already has the starter quest
+    if (!user.activeQuests) {
+      user.activeQuests = [];
+    }
+    
+    const starterQuestId = 'starter-walking-quest';
+    
+    // Check if user already has the starter quest
+    if (!user.activeQuests.includes(starterQuestId)) {
+      // Add starter quest to active quests
+      user.activeQuests.push(starterQuestId);
+      
+      // Store the quest in localStorage
+      const QUESTS_STORAGE_KEY = `lorequest_quests_${user.id}`;
+      
+      try {
+        const storedQuests = localStorage.getItem(QUESTS_STORAGE_KEY);
+        let questsData = storedQuests ? JSON.parse(storedQuests) : { 
+          daily: [], weekly: [], monthly: [], custom: [] 
+        };
+        
+        if (!questsData.custom) {
+          questsData.custom = [];
+        }
+        
+        // Create the starter quest
+        const starterQuest = {
+          id: starterQuestId,
+          name: QUEST_TYPES.STARTER.WALKING_DISTANCE.name,
+          description: QUEST_TYPES.STARTER.WALKING_DISTANCE.description,
+          type: QUEST_TYPES.STARTER.WALKING_DISTANCE.type,
+          targetCount: QUEST_TYPES.STARTER.WALKING_DISTANCE.targetCount,
+          xpReward: QUEST_TYPES.STARTER.WALKING_DISTANCE.xpReward,
+          goldReward: QUEST_TYPES.STARTER.WALKING_DISTANCE.goldReward,
+          completed: false,
+          progress: 0,
+          itemReward: {
+            type: 'armor',
+            name: `${user.playerClass} Armor Set`,
+            quantity: 5
+          }
+        };
+        
+        questsData.custom.push(starterQuest);
+        localStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(questsData));
+      } catch (error) {
+        console.error('Failed to add starter quest:', error);
+      }
+    }
+    
+    return user;
   };
   
   const progress = Math.round((currentStep / (steps.length - 1)) * 100);
@@ -218,6 +303,9 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
                       <div>INT: {CLASS_DESCRIPTIONS.Knight.baseStats.intelligence}</div>
                       <div>DEX: {CLASS_DESCRIPTIONS.Knight.baseStats.dexterity}</div>
                     </div>
+                    <div className="mt-2 text-xs text-lorequest-parchment">
+                      Starting Weapon: <span className="text-lorequest-gold">{CLASS_DESCRIPTIONS.Knight.initialWeapon.name}</span> (+1 STR)
+                    </div>
                   </div>
                 </div>
               </div>
@@ -237,6 +325,9 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
                       <div>INT: {CLASS_DESCRIPTIONS.Wizard.baseStats.intelligence}</div>
                       <div>DEX: {CLASS_DESCRIPTIONS.Wizard.baseStats.dexterity}</div>
                     </div>
+                    <div className="mt-2 text-xs text-lorequest-parchment">
+                      Starting Weapon: <span className="text-lorequest-gold">{CLASS_DESCRIPTIONS.Wizard.initialWeapon.name}</span> (+1 INT)
+                    </div>
                   </div>
                 </div>
               </div>
@@ -255,6 +346,9 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
                       <div>STR: {CLASS_DESCRIPTIONS.Ranger.baseStats.strength}</div>
                       <div>INT: {CLASS_DESCRIPTIONS.Ranger.baseStats.intelligence}</div>
                       <div>DEX: {CLASS_DESCRIPTIONS.Ranger.baseStats.dexterity}</div>
+                    </div>
+                    <div className="mt-2 text-xs text-lorequest-parchment">
+                      Starting Weapon: <span className="text-lorequest-gold">{CLASS_DESCRIPTIONS.Ranger.initialWeapon.name}</span> (+1 DEX)
                     </div>
                   </div>
                 </div>
@@ -323,11 +417,15 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
               </div>
               <h3 className="text-xl font-bold text-lorequest-gold">Tutorial Complete!</h3>
               <p className="text-lorequest-parchment">
-                You've earned {TUTORIAL_XP_REWARD} XP, {TUTORIAL_GOLD_REWARD} Gold, and a Rusty Sword for your inventory.
+                You've earned {TUTORIAL_XP_REWARD} XP, {TUTORIAL_GOLD_REWARD} Gold, and a {selectedClass && CLASS_DESCRIPTIONS[selectedClass].initialWeapon.name} for your inventory.
               </p>
               <p className="text-lorequest-parchment text-sm">
                 Your class: <span className="text-lorequest-gold">{selectedClass}</span>
               </p>
+              <div className="text-lorequest-parchment text-sm p-4 bg-lorequest-gold/10 rounded-lg mt-4">
+                <p className="font-medium text-lorequest-gold mb-2">Your next quest: First Steps</p>
+                <p>Walk 1 km to complete your first quest and earn a full armor set appropriate for your class!</p>
+              </div>
             </div>
           ) : (
             <>

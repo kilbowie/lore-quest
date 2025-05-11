@@ -1,382 +1,16 @@
-import { 
-  LEVEL_CONSTANTS, User, Achievement, UserAchievement, InventoryItem, 
-  UserStats, STAT_MULTIPLIERS, PlayerClass, CLASS_DESCRIPTIONS, 
-  REGENERATION_CONSTANTS, Quest, QUEST_TYPES
-} from "../types";
-import { updateUser } from "./authUtils";
-import { toast } from "@/components/ui/sonner";
 
-// Calculate XP required for a specific level
-export const calculateXpForLevel = (level: number): number => {
-  if (level <= 1) return 0;
-  if (level > LEVEL_CONSTANTS.MAX_LEVEL) return Infinity;
-  
-  return Math.floor(
-    LEVEL_CONSTANTS.BASE_XP * (Math.pow(LEVEL_CONSTANTS.SCALING_FACTOR, level - 1) - 1) / 
-    (LEVEL_CONSTANTS.SCALING_FACTOR - 1)
-  );
-};
-
-// Calculate total XP needed to reach next level
-export const xpToNextLevel = (currentLevel: number): number => {
-  return calculateXpForLevel(currentLevel + 1) - calculateXpForLevel(currentLevel);
-};
-
-// Calculate current level progress percentage
-// Modified to accept either a User object or a level number
-export const calculateLevelProgress = (userOrLevel: User | number): number => {
-  const level = typeof userOrLevel === 'number' ? userOrLevel : userOrLevel.level;
-  const experience = typeof userOrLevel === 'number' ? 0 : userOrLevel.experience;
-  
-  const currentLevelXp = calculateXpForLevel(level);
-  const nextLevelXp = calculateXpForLevel(level + 1);
-  const xpInCurrentLevel = experience - currentLevelXp;
-  const xpRequiredForNextLevel = nextLevelXp - currentLevelXp;
-  
-  return Math.min(100, Math.floor((xpInCurrentLevel / xpRequiredForNextLevel) * 100));
-};
-
-// Add XP to user and handle level up
-export const addExperience = (user: User, xpAmount: number, source?: string): User => {
-  const updatedUser = { ...user };
-  const oldLevel = updatedUser.level;
-  
-  // Add XP
-  updatedUser.experience += xpAmount;
-  
-  // Update stats
-  if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
-  }
-  
-  updatedUser.stats.totalXpEarned += xpAmount;
-  
-  // Check for level up
-  while (
-    updatedUser.level < LEVEL_CONSTANTS.MAX_LEVEL &&
-    updatedUser.experience >= calculateXpForLevel(updatedUser.level + 1)
-  ) {
-    updatedUser.level += 1;
-    
-    // Add a rune to inventory on level up
-    addItemToInventory(
-      updatedUser,
-      'rune',
-      `Level ${updatedUser.level} Rune`,
-      `A mystical rune gained upon reaching level ${updatedUser.level}`,
-      1,
-      '✨'
-    );
-    
-    // Recalculate max stats based on new level
-    recalculatePlayerStats(updatedUser);
-  }
-  
-  // Show level up notification
-  if (updatedUser.level > oldLevel) {
-    toast.success(`Level Up! You are now level ${updatedUser.level}`, {
-      description: "You've gained a new rune in your inventory!"
-    });
-  } else if (source) {
-    // Show XP notification
-    toast.success(`Gained ${xpAmount} XP`, {
-      description: `From: ${source}`
-    });
-  }
-  
-  // Update user in storage
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Add walking distance to user and award XP
-export const addWalkingDistance = (user: User, distanceKm: number): User => {
-  let updatedUser = { ...user };
-  
-  // Initialize stats if they don't exist
-  if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
-  }
-  
-  // Update distance travelled
-  updatedUser.stats.distanceTravelled += distanceKm;
-  
-  // Check if we should update quests progress
-  updatedUser = checkQuestProgress(updatedUser, 'walk', distanceKm);
-  
-  // Update user in storage
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Initialize user stats if they don't exist
-export const initializeUserStats = (user: User): User => {
-  if (!user.stats) {
-    user.stats = {
-      strength: 1,
-      intelligence: 1,
-      dexterity: 1,
-      distanceTravelled: 0,
-      locationsDiscovered: 0,
-      totalXpEarned: user.experience,
-      questXpEarned: 0,
-      walkingXpEarned: 0,
-      totalGoldEarned: user.gold || 0,
-      questGoldEarned: 0,
-      questsCompleted: 0,
-      achievementsUnlocked: 0,
-      dailyQuestsCompleted: 0,
-      weeklyQuestsCompleted: 0,
-      monthlyQuestsCompleted: 0
-    };
-  }
-  
-  // Initialize health/mana/stamina if not set
-  if (user.health === undefined) {
-    recalculatePlayerStats(user);
-  }
-  
-  return user;
-};
-
-// Update specific user stats
-export const updateUserStats = (user: User, updates: Partial<UserStats>): User => {
-  if (!user.stats) {
-    initializeUserStats(user);
-  }
-  
-  // Apply updates
-  Object.keys(updates).forEach((key) => {
-    const statKey = key as keyof UserStats;
-    const currentValue = user.stats[statKey] as number;
-    const updateValue = updates[statKey] as number;
-    
-    user.stats[statKey] = currentValue + updateValue;
-  });
-  
-  return user;
-};
-
-// Recalculate player stats based on class, level, and attributes
-export const recalculatePlayerStats = (user: User): User => {
-  const updatedUser = { ...user };
-  
-  // Initialize stats if they don't exist
-  if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
-  }
-  
-  // Get base stats from class or use defaults
-  let baseStats = { strength: 1, intelligence: 1, dexterity: 1 };
-  if (updatedUser.playerClass && CLASS_DESCRIPTIONS[updatedUser.playerClass]) {
-    baseStats = { ...CLASS_DESCRIPTIONS[updatedUser.playerClass].baseStats };
-  }
-  
-  // Calculate max health, mana, and stamina
-  const maxHealth = (updatedUser.stats.strength + baseStats.strength) * STAT_MULTIPLIERS.HEALTH_PER_STRENGTH;
-  const maxMana = (updatedUser.stats.intelligence + baseStats.intelligence) * STAT_MULTIPLIERS.MANA_PER_INTELLIGENCE;
-  const maxStamina = (updatedUser.stats.dexterity + baseStats.dexterity) * STAT_MULTIPLIERS.STAMINA_PER_DEXTERITY;
-  
-  // Update max values
-  updatedUser.maxHealth = maxHealth;
-  updatedUser.maxMana = maxMana;
-  updatedUser.maxStamina = maxStamina;
-  
-  // Initialize current values if not set
-  if (updatedUser.health === undefined) updatedUser.health = maxHealth;
-  if (updatedUser.mana === undefined) updatedUser.mana = maxMana;
-  if (updatedUser.stamina === undefined) updatedUser.stamina = maxStamina;
-  if (updatedUser.isDead === undefined) updatedUser.isDead = false;
-  
-  // Cap current values at max
-  updatedUser.health = Math.min(updatedUser.health, maxHealth);
-  updatedUser.mana = Math.min(updatedUser.mana, maxMana);
-  updatedUser.stamina = Math.min(updatedUser.stamina, maxStamina);
-  
-  return updatedUser;
-};
-
-// Check and update regeneration for health, mana, stamina
-export const checkRegeneration = (user: User): User => {
-  const updatedUser = { ...user };
-  const now = new Date();
-  
-  // Skip regeneration if user is dead
-  if (updatedUser.isDead) return updatedUser;
-  
-  const lastRegen = updatedUser.lastRegenerationTime ? new Date(updatedUser.lastRegenerationTime) : null;
-  if (!lastRegen) {
-    updatedUser.lastRegenerationTime = now;
-    return updatedUser;
-  }
-  
-  const timeElapsed = now.getTime() - lastRegen.getTime();
-  if (timeElapsed < REGENERATION_CONSTANTS.CHECK_INTERVAL_MS) {
-    return updatedUser; // Not enough time has passed
-  }
-  
-  // Calculate regeneration amounts
-  const regenFraction = Math.min(1, timeElapsed / REGENERATION_CONSTANTS.FULL_REGEN_TIME_MS);
-  const healthRegen = Math.floor(updatedUser.maxHealth * regenFraction);
-  const manaRegen = Math.floor(updatedUser.maxMana * regenFraction);
-  const staminaRegen = Math.floor(updatedUser.maxStamina * regenFraction);
-  
-  // Apply regeneration
-  updatedUser.health = Math.min(updatedUser.maxHealth, updatedUser.health + healthRegen);
-  updatedUser.mana = Math.min(updatedUser.maxMana, updatedUser.mana + manaRegen);
-  updatedUser.stamina = Math.min(updatedUser.maxStamina, updatedUser.stamina + staminaRegen);
-  
-  // Update timestamp
-  updatedUser.lastRegenerationTime = now;
-  
-  return updatedUser;
-};
-
-// Handle character death
-export const handleDeath = (user: User): User => {
-  const updatedUser = { ...user };
-  
-  // Check if health is 0
-  if (updatedUser.health <= 0 && !updatedUser.isDead) {
-    updatedUser.health = 0;
-    updatedUser.isDead = true;
-    
-    // Check for revival elixir
-    const revivalElixir = updatedUser.inventory.find(
-      item => item.type === 'elixir' && 
-      item.useEffect === 'revival' && 
-      item.quantity > 0
-    );
-    
-    if (revivalElixir) {
-      // Auto-use revival elixir
-      useItem(updatedUser, revivalElixir.id);
-      
-      toast.success('Revival Elixir Used', {
-        description: 'You were revived automatically using a Revival Elixir from your inventory.'
-      });
-    } else {
-      // No revival elixir available
-      toast.error('You have died!', {
-        description: 'Wait for regeneration or use a Revival Elixir to continue your adventure.'
-      });
-    }
-  }
-  
-  return updatedUser;
-};
-
-// Revive character
-export const reviveCharacter = (user: User): User => {
-  const updatedUser = { ...user };
-  
-  if (updatedUser.isDead) {
-    updatedUser.isDead = false;
-    updatedUser.health = Math.floor(updatedUser.maxHealth * 0.3); // Revive with 30% health
-    updatedUser.mana = Math.floor(updatedUser.maxMana * 0.3);
-    updatedUser.stamina = Math.floor(updatedUser.maxStamina * 0.3);
-    
-    toast.success('You have been revived!', {
-      description: 'Continue your adventure with caution.'
-    });
-  }
-  
-  return updatedUser;
-};
-
-// Use an item from inventory
-export const useItem = (user: User, itemId: string): User => {
-  const updatedUser = { ...user };
-  const itemIndex = updatedUser.inventory.findIndex(item => item.id === itemId);
-  
-  if (itemIndex === -1) {
-    toast.error('Item not found in inventory');
-    return updatedUser;
-  }
-  
-  const item = updatedUser.inventory[itemIndex];
-  
-  // Check if item can be used
-  if (item.quantity <= 0) {
-    toast.error('You do not have any of this item');
-    return updatedUser;
-  }
-  
-  // Apply item effect
-  switch (item.useEffect) {
-    case 'health':
-      if (!updatedUser.isDead) {
-        updatedUser.health = Math.min(updatedUser.maxHealth, updatedUser.health + (item.value || 0));
-        toast.success(`Used ${item.name}`, {
-          description: `Restored ${item.value} health points.`
-        });
-      } else {
-        toast.error(`Cannot use ${item.name} while dead`);
-        return updatedUser;
-      }
-      break;
-    
-    case 'mana':
-      if (!updatedUser.isDead) {
-        updatedUser.mana = Math.min(updatedUser.maxMana, updatedUser.mana + (item.value || 0));
-        toast.success(`Used ${item.name}`, {
-          description: `Restored ${item.value} mana points.`
-        });
-      } else {
-        toast.error(`Cannot use ${item.name} while dead`);
-        return updatedUser;
-      }
-      break;
-    
-    case 'stamina':
-      if (!updatedUser.isDead) {
-        updatedUser.stamina = Math.min(updatedUser.maxStamina, updatedUser.stamina + (item.value || 0));
-        toast.success(`Used ${item.name}`, {
-          description: `Restored ${item.value} stamina points.`
-        });
-      } else {
-        toast.error(`Cannot use ${item.name} while dead`);
-        return updatedUser;
-      }
-      break;
-    
-    case 'revival':
-      if (updatedUser.isDead) {
-        reviveCharacter(updatedUser);
-      } else {
-        toast.info(`Cannot use ${item.name} while alive`);
-        return updatedUser;
-      }
-      break;
-    
-    default:
-      toast.info(`Used ${item.name}`);
-      break;
-  }
-  
-  // Decrease quantity
-  updatedUser.inventory[itemIndex].quantity -= 1;
-  
-  // Remove item from inventory if quantity is 0
-  if (updatedUser.inventory[itemIndex].quantity <= 0) {
-    updatedUser.inventory = updatedUser.inventory.filter(i => i.id !== itemId);
-  }
-  
-  return updatedUser;
-};
-
-// Add item to user inventory
+// Update the addItemToInventory function to support equippable items
 export const addItemToInventory = (
   user: User,
-  type: 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold',
+  type: ItemType,
   name: string,
   description: string,
   quantity: number,
   icon?: string,
   useEffect?: 'health' | 'mana' | 'stamina' | 'revival' | 'none',
-  value?: number
+  value?: number,
+  isEquippable?: boolean,
+  equipmentStats?: EquipmentStats
 ): InventoryItem => {
   // Check if item already exists
   const existingItemIndex = user.inventory.findIndex(
@@ -399,7 +33,9 @@ export const addItemToInventory = (
       quantity,
       icon,
       useEffect,
-      value
+      value,
+      isEquippable,
+      equipmentStats
     };
     user.inventory.push(item);
   }
@@ -407,418 +43,346 @@ export const addItemToInventory = (
   return item;
 };
 
-// Add gold to user
-export const addGoldToUser = (user: User, amount: number, source?: string): User => {
+// Add the equip item function
+export const equipItem = (user: User, itemId: string): User => {
   const updatedUser = { ...user };
   
-  // Initialize gold if it doesn't exist
-  if (updatedUser.gold === undefined) {
-    updatedUser.gold = 0;
+  // Find the item in inventory
+  const itemIndex = updatedUser.inventory.findIndex(item => item.id === itemId);
+  if (itemIndex === -1) {
+    toast.error('Item not found in inventory');
+    return updatedUser;
   }
   
-  // Add gold
-  updatedUser.gold += amount;
+  const item = updatedUser.inventory[itemIndex];
   
-  // Show notification
-  if (source && amount > 0) {
-    toast.success(`Gained ${amount} Gold`, {
-      description: `From: ${source}`
-    });
+  // Check if item is equippable
+  if (!item.isEquippable || !item.equipmentStats) {
+    toast.error('This item cannot be equipped');
+    return updatedUser;
   }
   
-  // Update stats
-  if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
+  // Check if player meets class requirements
+  const requiredClass = item.equipmentStats.requiredClass;
+  if (requiredClass && requiredClass !== 'any' && requiredClass !== updatedUser.playerClass) {
+    toast.error(`Only ${requiredClass}s can equip this item`);
+    return updatedUser;
   }
   
-  updatedUser.stats.totalGoldEarned += amount;
-  
-  return updatedUser;
-};
-
-// Spend gold for purchases
-export const spendGold = (user: User, amount: number, reason?: string): [User, boolean] => {
-  const updatedUser = { ...user };
-  
-  // Initialize gold if it doesn't exist
-  if (updatedUser.gold === undefined) {
-    updatedUser.gold = 0;
+  // Check if player meets level requirements
+  const requiredLevel = item.equipmentStats.requiredLevel || 1;
+  if (updatedUser.level < requiredLevel) {
+    toast.error(`You need to be level ${requiredLevel} to equip this item`);
+    return updatedUser;
   }
   
-  // Check if user has enough gold
-  if (updatedUser.gold < amount) {
-    toast.error('Not enough gold', {
-      description: 'You do not have enough gold for this purchase.'
-    });
-    return [updatedUser, false]; // Return false for failure
+  // Initialize equipment if not exists
+  if (!updatedUser.equipment) {
+    updatedUser.equipment = {};
   }
   
-  // Spend gold
-  updatedUser.gold -= amount;
+  // Get the slot the item goes in
+  const slot = item.equipmentStats.slot;
   
-  // Show notification
-  if (reason) {
-    toast.info(`Spent ${amount} Gold`, {
-      description: reason
-    });
+  // Check if secondary weapon is unlocked
+  if (slot === 'secondaryWeapon' && updatedUser.level < 5) {
+    toast.error('Secondary weapon slot unlocks at level 5');
+    return updatedUser;
   }
   
-  return [updatedUser, true]; // Return true for success
-};
-
-// Track progress for an achievement
-export const trackAchievement = (user: User, achievementId: string): User => {
-  const updatedUser = { ...user };
-  
-  // Find achievement in user's achievements
-  const achievementIndex = updatedUser.achievements.findIndex(
-    a => a.achievementId === achievementId
-  );
-  
-  if (achievementIndex >= 0) {
-    // Mark as tracked
-    updatedUser.achievements[achievementIndex].isTracked = true;
-    
-    // Add to active quests if not already there
-    if (!updatedUser.activeQuests.includes(achievementId)) {
-      updatedUser.activeQuests.push(achievementId);
-    }
-  }
-  
-  // Update user in storage
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Untrack an achievement
-export const untrackAchievement = (user: User, achievementId: string): User => {
-  const updatedUser = { ...user };
-  
-  // Find achievement in user's achievements
-  const achievementIndex = updatedUser.achievements.findIndex(
-    a => a.achievementId === achievementId
-  );
-  
-  if (achievementIndex >= 0) {
-    // Mark as untracked
-    updatedUser.achievements[achievementIndex].isTracked = false;
-    
-    // Remove from active quests
-    updatedUser.activeQuests = updatedUser.activeQuests.filter(id => id !== achievementId);
-  }
-  
-  // Update user in storage
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Walking tracker utilities
-const WALKING_XP_PER_KM = 10; // XP per kilometer
-const WALKING_STORAGE_KEY = 'lorequest_walking_data';
-
-// Get user walking data
-export const getUserWalkingData = (userId: string): WalkingData => {
-  try {
-    const walkingDataJson = localStorage.getItem(WALKING_STORAGE_KEY);
-    const allWalkingData = walkingDataJson ? JSON.parse(walkingDataJson) : [];
-    
-    // Find user data
-    const userData = allWalkingData.find((data: WalkingData) => data.userId === userId);
-    
-    if (userData) {
-      return userData;
-    }
-    
-    // Create new walking data for user
-    const newData: WalkingData = {
-      userId,
-      totalDistanceKm: 0,
-      earnedXP: 0,
-      lastXpAwardDate: new Date().toISOString().split('T')[0]
-    };
-    
-    // Save to storage
-    allWalkingData.push(newData);
-    localStorage.setItem(WALKING_STORAGE_KEY, JSON.stringify(allWalkingData));
-    
-    return newData;
-  } catch (error) {
-    console.error('Error getting walking data:', error);
-    return {
-      userId,
-      totalDistanceKm: 0,
-      earnedXP: 0,
-      lastXpAwardDate: new Date().toISOString().split('T')[0]
-    };
-  }
-};
-
-// Update walking data with new position
-export const updateWalkingData = (
-  userId: string,
-  latitude: number,
-  longitude: number
-): {walkingData: WalkingData, xpGained: number, distanceAdded: number} => {
-  try {
-    // Get all walking data
-    const walkingDataJson = localStorage.getItem(WALKING_STORAGE_KEY);
-    const allWalkingData = walkingDataJson ? JSON.parse(walkingDataJson) : [];
-    
-    // Find user data
-    const userDataIndex = allWalkingData.findIndex((data: WalkingData) => data.userId === userId);
-    let userData: WalkingData;
-    
-    if (userDataIndex >= 0) {
-      userData = allWalkingData[userDataIndex];
-    } else {
-      userData = {
-        userId,
-        totalDistanceKm: 0,
-        earnedXP: 0,
-        lastXpAwardDate: new Date().toISOString().split('T')[0]
-      };
-      allWalkingData.push(userData);
-    }
-    
-    // Check if we have a previous position
-    let distanceKm = 0;
-    let xpGained = 0;
-    
-    if (userData.lastPosition) {
-      // Calculate distance
-      distanceKm = calculateDistanceKm(
-        userData.lastPosition.latitude,
-        userData.lastPosition.longitude,
-        latitude,
-        longitude
+  // If an item is already equipped in this slot, unequip it first
+  if (updatedUser.equipment[slot]) {
+    // Put the currently equipped item back in inventory
+    const equippedItem = updatedUser.equipment[slot];
+    if (equippedItem) {
+      // Add the item back to inventory
+      const existingItemIndex = updatedUser.inventory.findIndex(
+        invItem => invItem.id === equippedItem.id
       );
       
-      // Sanity check - if distance is too large, it might be a GPS error or teleportation
-      if (distanceKm > 0 && distanceKm < 1) { // Less than 1km at a time
-        // Update total distance
-        userData.totalDistanceKm += distanceKm;
-        
-        // Check if we need to award XP
-        const today = new Date().toISOString().split('T')[0];
-        const lastXpAwardDate = userData.lastXpAwardDate || '1970-01-01';
-        
-        // We award XP for distance once per day
-        if (today !== lastXpAwardDate && userData.totalDistanceKm >= 1) {
-          // Calculate XP to award
-          const kmToAward = Math.floor(userData.totalDistanceKm);
-          xpGained = kmToAward * WALKING_XP_PER_KM;
-          
-          // Update lastXpAwardDate and reset distance counter
-          userData.lastXpAwardDate = today;
-          userData.earnedXP += xpGained;
-          userData.totalDistanceKm -= kmToAward; // Keep the fraction for next time
-        }
+      if (existingItemIndex >= 0) {
+        updatedUser.inventory[existingItemIndex].quantity += 1;
+      } else {
+        updatedUser.inventory.push({ ...equippedItem, quantity: 1 });
       }
     }
-    
-    // Update last position
-    userData.lastPosition = {
-      latitude,
-      longitude,
-      timestamp: Date.now()
-    };
-    
-    // Save all walking data
-    if (userDataIndex >= 0) {
-      allWalkingData[userDataIndex] = userData;
-    }
-    
-    localStorage.setItem(WALKING_STORAGE_KEY, JSON.stringify(allWalkingData));
-    
-    return { walkingData: userData, xpGained, distanceAdded: distanceKm };
-  } catch (error) {
-    console.error('Error updating walking data:', error);
-    return { 
-      walkingData: {
-        userId,
-        totalDistanceKm: 0,
-        earnedXP: 0,
-        lastXpAwardDate: new Date().toISOString().split('T')[0]
-      }, 
-      xpGained: 0,
-      distanceAdded: 0
-    };
-  }
-};
-
-// Calculate distance between two points in kilometers
-const calculateDistanceKm = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-const deg2rad = (deg: number): number => {
-  return deg * (Math.PI / 180);
-};
-
-// Quest related functions
-interface WalkingData {
-  userId: string;
-  lastPosition?: {
-    latitude: number;
-    longitude: number;
-    timestamp: number;
-  };
-  totalDistanceKm: number;
-  earnedXP: number;
-  lastXpAwardDate: string;
-}
-
-// Generate daily, weekly, monthly quests
-export const generateTimeBasedQuests = (user: User): User => {
-  const updatedUser = { ...user };
-  const now = new Date();
-  
-  // Initialize quest storage if needed
-  const QUESTS_STORAGE_KEY = `lorequest_quests_${user.id}`;
-  let questsData: {
-    daily: Quest[];
-    weekly: Quest[];
-    monthly: Quest[];
-    lastDaily: string;
-    lastWeekly: string;
-    lastMonthly: string;
-  } = {
-    daily: [],
-    weekly: [],
-    monthly: [],
-    lastDaily: '',
-    lastWeekly: '',
-    lastMonthly: ''
-  };
-  
-  try {
-    const storedQuests = localStorage.getItem(QUESTS_STORAGE_KEY);
-    if (storedQuests) {
-      questsData = JSON.parse(storedQuests);
-    }
-  } catch (error) {
-    console.error('Failed to load quests data:', error);
   }
   
-  // Check if we need to generate new daily quests
-  const today = now.toISOString().split('T')[0];
-  if (questsData.lastDaily !== today) {
-    // Generate new daily quest
-    const dailyWalkingQuest: Quest = {
-      id: `daily-walking-${today}`,
-      name: QUEST_TYPES.DAILY.WALKING_DISTANCE.name,
-      description: QUEST_TYPES.DAILY.WALKING_DISTANCE.description,
-      type: 'daily',
-      targetCount: QUEST_TYPES.DAILY.WALKING_DISTANCE.targetCount,
-      xpReward: QUEST_TYPES.DAILY.WALKING_DISTANCE.xpReward,
-      goldReward: QUEST_TYPES.DAILY.WALKING_DISTANCE.goldReward,
-      completed: false,
-      progress: 0,
-      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) // Expires in 24 hours
-    };
-    
-    questsData.daily = [dailyWalkingQuest];
-    questsData.lastDaily = today;
+  // Equip the new item
+  updatedUser.equipment[slot] = { ...item, quantity: 1 };
+  
+  // Reduce quantity in inventory
+  updatedUser.inventory[itemIndex].quantity -= 1;
+  
+  // Remove the item from inventory if quantity is 0
+  if (updatedUser.inventory[itemIndex].quantity <= 0) {
+    updatedUser.inventory = updatedUser.inventory.filter(i => i.id !== itemId);
   }
   
-  // Check if we need to generate new weekly quests
-  const startOfWeek = getStartOfWeek(now).toISOString().split('T')[0];
-  if (questsData.lastWeekly !== startOfWeek) {
-    // Generate new weekly quest
-    const weeklyWalkingQuest: Quest = {
-      id: `weekly-walking-${startOfWeek}`,
-      name: QUEST_TYPES.WEEKLY.WALKING_DISTANCE.name,
-      description: QUEST_TYPES.WEEKLY.WALKING_DISTANCE.description,
-      type: 'weekly',
-      targetCount: QUEST_TYPES.WEEKLY.WALKING_DISTANCE.targetCount,
-      xpReward: QUEST_TYPES.WEEKLY.WALKING_DISTANCE.xpReward,
-      goldReward: QUEST_TYPES.WEEKLY.WALKING_DISTANCE.goldReward,
-      completed: false,
-      progress: 0,
-      expiresAt: new Date(getStartOfWeek(now).getTime() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
-    };
-    
-    questsData.weekly = [weeklyWalkingQuest];
-    questsData.lastWeekly = startOfWeek;
-  }
+  // Recalculate player stats based on equipment
+  recalculateEquipmentStats(updatedUser);
   
-  // Check if we need to generate new monthly quests
-  const startOfMonth = getStartOfMonth(now).toISOString().split('T')[0];
-  if (questsData.lastMonthly !== startOfMonth) {
-    // Generate new monthly quest
-    const monthlyWalkingQuest: Quest = {
-      id: `monthly-walking-${startOfMonth}`,
-      name: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.name,
-      description: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.description,
-      type: 'monthly',
-      targetCount: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.targetCount,
-      xpReward: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.xpReward,
-      goldReward: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.goldReward,
-      itemReward: QUEST_TYPES.MONTHLY.WALKING_DISTANCE.itemReward,
-      completed: false,
-      progress: 0,
-      expiresAt: new Date(getEndOfMonth(now).getTime()) // Expires at end of month
-    };
-    
-    questsData.monthly = [monthlyWalkingQuest];
-    questsData.lastMonthly = startOfMonth;
-  }
-  
-  // Save updated quests
-  localStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(questsData));
+  toast.success(`Equipped ${item.name}`);
   
   return updatedUser;
 };
 
-// Get user's time-based quests
-export const getTimeBasedQuests = (userId: string): {
-  daily: Quest[];
-  weekly: Quest[];
-  monthly: Quest[];
-} => {
-  const QUESTS_STORAGE_KEY = `lorequest_quests_${userId}`;
+// Function to unequip an item
+export const unequipItem = (user: User, slot: EquipmentSlot): User => {
+  const updatedUser = { ...user };
   
-  try {
-    const storedQuests = localStorage.getItem(QUESTS_STORAGE_KEY);
-    if (storedQuests) {
-      const questsData = JSON.parse(storedQuests);
-      return {
-        daily: questsData.daily || [],
-        weekly: questsData.weekly || [],
-        monthly: questsData.monthly || []
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load quests data:', error);
+  // Check if there's an item in this slot
+  if (!updatedUser.equipment || !updatedUser.equipment[slot]) {
+    toast.error('No item equipped in this slot');
+    return updatedUser;
   }
   
-  return {
-    daily: [],
-    weekly: [],
-    monthly: []
-  };
+  // Get the equipped item
+  const equippedItem = updatedUser.equipment[slot];
+  
+  // Add it back to inventory
+  const existingItemIndex = updatedUser.inventory.findIndex(
+    item => item.id === equippedItem!.id
+  );
+  
+  if (existingItemIndex >= 0) {
+    updatedUser.inventory[existingItemIndex].quantity += 1;
+  } else {
+    updatedUser.inventory.push({ ...equippedItem!, quantity: 1 });
+  }
+  
+  // Remove from equipment
+  updatedUser.equipment[slot] = undefined;
+  
+  // Recalculate player stats
+  recalculateEquipmentStats(updatedUser);
+  
+  toast.success(`Unequipped ${equippedItem!.name}`);
+  
+  return updatedUser;
 };
 
-// Check quest progress based on activity
-export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover' | 'other', amount: number): User => {
+// Function to recalculate player stats based on equipment
+export const recalculateEquipmentStats = (user: User): User => {
   const updatedUser = { ...user };
+  
+  // Initialize equipment if not exists
+  if (!updatedUser.equipment) {
+    updatedUser.equipment = {};
+  }
+  
+  // Reset armor value
+  updatedUser.armor = 0;
+  
+  // Get all equipped items
+  const equippedItems = Object.values(updatedUser.equipment).filter(item => item) as EquippableItem[];
+  
+  // Calculate stat bonuses from all equipped items
+  equippedItems.forEach(item => {
+    if (item.equipmentStats) {
+      // Add armor from item
+      if (item.equipmentStats.armor) {
+        updatedUser.armor += item.equipmentStats.armor;
+      }
+      
+      // Apply stat bonuses
+      if (item.equipmentStats.statBonuses) {
+        item.equipmentStats.statBonuses.forEach(bonus => {
+          switch (bonus.attribute) {
+            case 'strength':
+              updatedUser.stats.strength += bonus.value;
+              break;
+            case 'intelligence':
+              updatedUser.stats.intelligence += bonus.value;
+              break;
+            case 'dexterity':
+              updatedUser.stats.dexterity += bonus.value;
+              break;
+          }
+        });
+      }
+    }
+  });
+  
+  // Recalculate base stats
+  return recalculatePlayerStats(updatedUser);
+};
+
+// Add combat calculation functions
+export const calculateDamage = (
+  attackerUser: User,
+  defenderUser: User,
+  attackType: AttackType
+): { damage: number; isCritical: boolean; isWeak: boolean } => {
+  // Get attacker's relevant stat based on attack type
+  let attackerStat = 0;
+  
+  if (attackType === 'Melee') {
+    attackerStat = attackerUser.stats.strength;
+  } else if (attackType === 'Magic') {
+    attackerStat = attackerUser.stats.intelligence;
+  } else if (attackType === 'Ranged') {
+    attackerStat = attackerUser.stats.dexterity;
+  }
+  
+  // Determine defender's primary attack type based on class
+  let defenderAttackType: AttackType = 'Melee';
+  if (defenderUser.playerClass === 'Wizard') {
+    defenderAttackType = 'Magic';
+  } else if (defenderUser.playerClass === 'Ranger') {
+    defenderAttackType = 'Ranged';
+  }
+  
+  // Get combat effectiveness to determine multipliers
+  const effectiveness = COMBAT_EFFECTIVENESS[attackType];
+  
+  // Determine if this is a critical or weak attack
+  const isCritical = effectiveness.criticalAgainst === defenderAttackType;
+  const isWeak = effectiveness.weakAgainst === defenderAttackType;
+  
+  // Calculate base damage
+  let damage = attackerStat * 2; // Base damage formula
+  
+  // Apply critical or weak multipliers
+  if (isCritical) {
+    damage *= COMBAT_CONSTANTS.CRITICAL_MULTIPLIER;
+  } else if (isWeak) {
+    damage *= COMBAT_CONSTANTS.WEAK_MULTIPLIER;
+  }
+  
+  // Apply defender's armor reduction (only for non-critical hits)
+  if (!isCritical && defenderUser.armor > 0) {
+    // Armor reduces damage by a percentage
+    const damageReduction = Math.min(0.75, defenderUser.armor / 100); // Max 75% reduction
+    damage *= (1 - damageReduction);
+  }
+  
+  // Ensure damage is at least 1
+  damage = Math.max(1, Math.floor(damage));
+  
+  return { damage, isCritical, isWeak };
+};
+
+// Function to handle level up and add stat point to primary attribute
+export const handleLevelUp = (user: User, oldLevel: number): User => {
+  const updatedUser = { ...user };
+  
+  // If level increased, add stat points to primary attribute
+  if (updatedUser.level > oldLevel) {
+    if (updatedUser.playerClass) {
+      const primaryAttribute = CLASS_DESCRIPTIONS[updatedUser.playerClass].primaryAttribute;
+      
+      // Add stat point to primary attribute
+      updatedUser.stats[primaryAttribute] += (updatedUser.level - oldLevel);
+      
+      // Add XP runes to inventory (one per level gained)
+      for (let i = oldLevel + 1; i <= updatedUser.level; i++) {
+        addItemToInventory(
+          updatedUser,
+          'rune',
+          `Level ${i} XP Rune`,
+          `A mystical rune that can be used to increase any stat by 1 point.`,
+          1,
+          '✨'
+        );
+      }
+      
+      // Recalculate player stats with new attributes
+      recalculatePlayerStats(updatedUser);
+    }
+  }
+  
+  return updatedUser;
+};
+
+// Function to handle completing the starter quest
+export const completeStarterQuest = (user: User, playerClass: PlayerClass): User => {
+  const updatedUser = { ...user };
+  
+  // Get the armor set for the player's class
+  const armorSet = STARTER_QUEST_REWARDS[playerClass].armorSet;
+  
+  // Add each armor piece to inventory
+  // Head
+  addItemToInventory(
+    updatedUser,
+    'armor',
+    armorSet.head.name!,
+    armorSet.head.description!,
+    1,
+    '🪖',
+    'none',
+    0,
+    true,
+    armorSet.head.equipmentStats
+  );
+  
+  // Body
+  addItemToInventory(
+    updatedUser,
+    'armor',
+    armorSet.body.name!,
+    armorSet.body.description!,
+    1,
+    '👕',
+    'none',
+    0,
+    true,
+    armorSet.body.equipmentStats
+  );
+  
+  // Legs
+  addItemToInventory(
+    updatedUser,
+    'armor',
+    armorSet.legs.name!,
+    armorSet.legs.description!,
+    1,
+    '👖',
+    'none',
+    0,
+    true,
+    armorSet.legs.equipmentStats
+  );
+  
+  // Hands
+  addItemToInventory(
+    updatedUser,
+    'armor',
+    armorSet.hands.name!,
+    armorSet.hands.description!,
+    1,
+    '🧤',
+    'none',
+    0,
+    true,
+    armorSet.hands.equipmentStats
+  );
+  
+  // Feet
+  addItemToInventory(
+    updatedUser,
+    'armor',
+    armorSet.feet.name!,
+    armorSet.feet.description!,
+    1,
+    '👢',
+    'none',
+    0,
+    true,
+    armorSet.feet.equipmentStats
+  );
+  
+  toast.success(`Obtained ${playerClass} Starter Armor Set!`, {
+    description: "Check your inventory to equip your new armor."
+  });
+  
+  return updatedUser;
+};
+
+// Modified checkQuestProgress function to handle starter quest
+export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover' | 'other', amount: number): User => {
+  let updatedUser = { ...user };
   const userId = updatedUser.id;
   const QUESTS_STORAGE_KEY = `lorequest_quests_${userId}`;
   
@@ -837,7 +401,8 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
       if (activityType === 'walk' && (
         quest.type === 'daily' || 
         quest.type === 'weekly' || 
-        quest.type === 'monthly'
+        quest.type === 'monthly' ||
+        quest.type === 'tutorial'
       )) {
         // Update progress
         quest.progress += amount / quest.targetCount;
@@ -884,25 +449,31 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
           
           // Add item reward if available
           if (quest.itemReward) {
-            // Fix the type issue by explicitly typing it as a union type
-            const reward = { 
-              type: quest.itemReward.type as "potion" | "elixir" | "other", 
-              name: quest.itemReward.name, 
-              quantity: quest.itemReward.quantity 
-            };
-            
-            // Make sure to pass the correctly typed value
-            addItemToInventory(
-              updatedUser,
-              reward.type,
-              reward.name,
-              `Reward from ${quest.name} quest`,
-              reward.quantity
-            );
-            
-            toast.success(`Quest Complete: ${quest.name}`, {
-              description: `Earned ${reward.quantity} ${reward.name}!`
-            });
+            // Check if this is the starter quest
+            if (quest.id === 'starter-walking-quest' && updatedUser.playerClass) {
+              // Complete starter quest with armor set reward
+              updatedUser = completeStarterQuest(updatedUser, updatedUser.playerClass);
+            } else {
+              // Fix the type issue by explicitly typing it as a union type
+              const reward = { 
+                type: quest.itemReward.type as "potion" | "elixir" | "other" | "weapon" | "armor",
+                name: quest.itemReward.name, 
+                quantity: quest.itemReward.quantity 
+              };
+              
+              // Make sure to pass the correctly typed value
+              addItemToInventory(
+                updatedUser,
+                reward.type,
+                reward.name,
+                `Reward from ${quest.name} quest`,
+                reward.quantity
+              );
+              
+              toast.success(`Quest Complete: ${quest.name}`, {
+                description: `Earned ${reward.quantity} ${reward.name}!`
+              });
+            }
           }
           
           // Update quest completion stats
@@ -933,6 +504,11 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
     questsData.weekly = questsData.weekly.map(updateQuestProgress);
     questsData.monthly = questsData.monthly.map(updateQuestProgress);
     
+    // Check custom quests (including starter quest)
+    if (questsData.custom) {
+      questsData.custom = questsData.custom.map(updateQuestProgress);
+    }
+    
     // Save updated quests if there were changes
     if (questsUpdated) {
       localStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(questsData));
@@ -945,63 +521,56 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
   }
 };
 
-// Helper functions for date calculations
-const getStartOfWeek = (date: Date): Date => {
-  const newDate = new Date(date);
-  const day = newDate.getDay();
-  const diff = newDate.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  newDate.setDate(diff);
-  newDate.setHours(0, 0, 0, 0);
-  return newDate;
-};
-
-const getStartOfMonth = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setDate(1);
-  newDate.setHours(0, 0, 0, 0);
-  return newDate;
-};
-
-const getEndOfMonth = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setMonth(newDate.getMonth() + 1);
-  newDate.setDate(0);
-  newDate.setHours(23, 59, 59, 999);
-  return newDate;
-};
-
-// Function to complete the email verification quest
-export const completeVerificationQuest = (user: User): User => {
+// Update addExperience function to handle automatic stat increases on level up
+export const addExperience = (user: User, xpAmount: number, source?: string): User => {
   const updatedUser = { ...user };
-  
-  // Fixed XP and gold rewards
-  const xpReward = 100;
-  const goldReward = 50;
+  const oldLevel = updatedUser.level;
   
   // Add XP
-  updatedUser.experience += xpReward;
+  updatedUser.experience += xpAmount;
   
-  // Add gold
-  if (updatedUser.gold === undefined) {
-    updatedUser.gold = 0;
-  }
-  updatedUser.gold += goldReward;
-  
-  // Initialize stats if needed
+  // Update stats
   if (!updatedUser.stats) {
     initializeUserStats(updatedUser);
   }
   
-  // Update stats
-  updatedUser.stats.totalXpEarned += xpReward;
-  updatedUser.stats.questXpEarned += xpReward;
-  updatedUser.stats.totalGoldEarned += goldReward;
-  updatedUser.stats.questGoldEarned += goldReward;
-  updatedUser.stats.questsCompleted += 1;
+  updatedUser.stats.totalXpEarned += xpAmount;
   
-  toast.success('Email Verified!', {
-    description: `You earned ${xpReward} XP and ${goldReward} gold.`
-  });
+  // Check for level up
+  while (
+    updatedUser.level < LEVEL_CONSTANTS.MAX_LEVEL &&
+    updatedUser.experience >= calculateXpForLevel(updatedUser.level + 1)
+  ) {
+    updatedUser.level += 1;
+    
+    // Add a rune to inventory on level up
+    addItemToInventory(
+      updatedUser,
+      'rune',
+      `Level ${updatedUser.level} Rune`,
+      `A mystical rune gained upon reaching level ${updatedUser.level}`,
+      1,
+      '✨'
+    );
+    
+    // Handle automatic stat increases on level up
+    updatedUser = handleLevelUp(updatedUser, oldLevel);
+  }
+  
+  // Show level up notification
+  if (updatedUser.level > oldLevel) {
+    toast.success(`Level Up! You are now level ${updatedUser.level}`, {
+      description: `You've gained a new rune in your inventory${updatedUser.playerClass ? ` and +1 to your ${CLASS_DESCRIPTIONS[updatedUser.playerClass].primaryAttribute} stat!` : '!'}`
+    });
+  } else if (source) {
+    // Show XP notification
+    toast.success(`Gained ${xpAmount} XP`, {
+      description: `From: ${source}`
+    });
+  }
+  
+  // Update user in storage
+  updateUser(updatedUser);
   
   return updatedUser;
 };
@@ -1031,36 +600,23 @@ export const addVerificationQuest = (user: User): User => {
   return updatedUser;
 };
 
-// Function to upgrade a stat with a rune
-export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence' | 'dexterity', runeId: string): User => {
-  const updatedUser = { ...user };
+// Fix the walking distance function to prevent reassignment of const
+export const addWalkingDistance = (user: User, distanceKm: number): User => {
+  let updatedUser = { ...user };
   
-  // Check if the rune exists in user's inventory
-  const runeIndex = updatedUser.inventory.findIndex(item => item.id === runeId && item.type === 'rune');
-  if (runeIndex === -1) {
-    toast.error('Rune not found in your inventory');
-    return updatedUser;
-  }
-  
-  // Upgrade the stat
+  // Initialize stats if they don't exist
   if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
+    updatedUser = initializeUserStats(updatedUser);
   }
   
-  // Apply the stat increase
-  updatedUser.stats[stat] += 1;
+  // Update distance travelled
+  updatedUser.stats.distanceTravelled += distanceKm;
   
-  // Remove the rune from inventory
-  updatedUser.inventory[runeIndex].quantity -= 1;
-  if (updatedUser.inventory[runeIndex].quantity <= 0) {
-    updatedUser.inventory = updatedUser.inventory.filter(item => item.id !== runeId);
-  }
+  // Check if we should update quests progress
+  updatedUser = checkQuestProgress(updatedUser, 'walk', distanceKm);
   
-  // Recalculate player stats based on new attribute values
-  recalculatePlayerStats(updatedUser);
-  
-  // Notify the user
-  toast.success(`${stat.charAt(0).toUpperCase() + stat.slice(1)} increased by 1!`);
+  // Update user in storage
+  updateUser(updatedUser);
   
   return updatedUser;
 };

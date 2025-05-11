@@ -1,5 +1,5 @@
 
-import { User } from "../types";
+import { User, Equipment } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "@/components/ui/sonner";
 import { completeVerificationQuest } from "./xpUtils";
@@ -73,7 +73,9 @@ export const createUser = (name: string, email: string, username: string, passwo
     mana: 10,
     maxMana: 10,
     stamina: 10,
-    maxStamina: 10
+    maxStamina: 10,
+    equipment: {}, // Initialize empty equipment
+    armor: 0 // Initialize armor at 0
   };
 
   existingUsers.push(newUser);
@@ -132,6 +134,17 @@ export const setUserClass = (userId: string, playerClass: 'Knight' | 'Wizard' | 
   }
   
   const updatedUser = { ...users[userIndex], playerClass };
+  
+  // Initialize equipment if not exists
+  if (!updatedUser.equipment) {
+    updatedUser.equipment = {} as Equipment;
+  }
+  
+  // Initialize armor if not exists
+  if (updatedUser.armor === undefined) {
+    updatedUser.armor = 0;
+  }
+  
   users[userIndex] = updatedUser;
   
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));

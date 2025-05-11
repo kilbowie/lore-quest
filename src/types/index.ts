@@ -38,7 +38,7 @@ export interface User {
   profilePicture?: string;
   level: number;
   experience: number;
-  gold: number; // Added gold currency
+  gold: number; 
   inventory: InventoryItem[];
   discoveredLocations: string[]; // IDs of discovered locations
   achievements: UserAchievement[];
@@ -57,6 +57,21 @@ export interface User {
   maxStamina: number; // Maximum stamina points
   isDead: boolean; // Is player dead
   lastRegenerationTime?: Date; // Last time health/mana/stamina regenerated
+  // New equipment slots
+  equipment: Equipment;
+  // New armor stat
+  armor: number;
+}
+
+// Equipment slots
+export interface Equipment {
+  mainWeapon?: EquippableItem;
+  secondaryWeapon?: EquippableItem;
+  head?: EquippableItem;
+  body?: EquippableItem;
+  legs?: EquippableItem;
+  hands?: EquippableItem;
+  feet?: EquippableItem;
 }
 
 // Player statistics
@@ -81,26 +96,82 @@ export interface UserStats {
 // Player classes
 export type PlayerClass = 'Knight' | 'Wizard' | 'Ranger';
 
+// Attack types
+export type AttackType = 'Melee' | 'Magic' | 'Ranged';
+
+// Item types extended
+export type ItemType = 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold' | 'armor';
+
+// Equipment slots type
+export type EquipmentSlot = 'mainWeapon' | 'secondaryWeapon' | 'head' | 'body' | 'legs' | 'hands' | 'feet';
+
 // Class descriptions and base stats
 export const CLASS_DESCRIPTIONS: Record<PlayerClass, { 
   description: string; 
   baseStats: { strength: number; intelligence: number; dexterity: number };
   primaryAttribute: 'strength' | 'intelligence' | 'dexterity';
+  attackType: AttackType;
+  initialWeapon: {
+    name: string;
+    attackType: AttackType;
+    statBonus: { attribute: string; value: number };
+  };
 }> = {
   Knight: {
     description: 'A stalwart defender with high health. Specializes in physical combat.',
     baseStats: { strength: 5, intelligence: 2, dexterity: 3 },
-    primaryAttribute: 'strength'
+    primaryAttribute: 'strength',
+    attackType: 'Melee',
+    initialWeapon: {
+      name: 'Rusty Sword',
+      attackType: 'Melee',
+      statBonus: { attribute: 'strength', value: 1 }
+    }
   },
   Wizard: {
     description: 'A master of arcane arts with high mana. Specializes in magical abilities.',
     baseStats: { strength: 2, intelligence: 5, dexterity: 3 },
-    primaryAttribute: 'intelligence'
+    primaryAttribute: 'intelligence',
+    attackType: 'Magic',
+    initialWeapon: {
+      name: 'Walking Staff',
+      attackType: 'Magic',
+      statBonus: { attribute: 'intelligence', value: 1 }
+    }
   },
   Ranger: {
     description: 'A nimble explorer with high stamina. Specializes in ranged combat and mobility.',
     baseStats: { strength: 3, intelligence: 2, dexterity: 5 },
-    primaryAttribute: 'dexterity'
+    primaryAttribute: 'dexterity',
+    attackType: 'Ranged',
+    initialWeapon: {
+      name: 'Training Bow',
+      attackType: 'Ranged',
+      statBonus: { attribute: 'dexterity', value: 1 }
+    }
+  }
+};
+
+// Combat effectiveness relationships
+export const COMBAT_EFFECTIVENESS: Record<AttackType, { 
+  criticalAgainst: AttackType;
+  weakAgainst: AttackType;
+  damageAttribute: 'strength' | 'intelligence' | 'dexterity';
+}> = {
+  Melee: {
+    criticalAgainst: 'Magic',
+    weakAgainst: 'Ranged',
+    damageAttribute: 'strength'
+  },
+  Magic: {
+    criticalAgainst: 'Ranged',
+    weakAgainst: 'Melee',
+    damageAttribute: 'intelligence'
+  },
+  Ranged: {
+    criticalAgainst: 'Melee',
+    weakAgainst: 'Magic',
+    damageAttribute: 'dexterity'
   }
 };
 
@@ -117,15 +188,40 @@ export const REGENERATION_CONSTANTS = {
   CHECK_INTERVAL_MS: 60 * 1000 // Check every minute
 };
 
+// Combat constants
+export const COMBAT_CONSTANTS = {
+  CRITICAL_MULTIPLIER: 1.5,
+  WEAK_MULTIPLIER: 0.75
+};
+
+// Extended InventoryItem to include equippable items
 export interface InventoryItem {
   id: string;
-  type: 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold';
+  type: ItemType;
   name: string;
   description?: string;
   quantity: number;
   icon?: string;
   useEffect?: 'health' | 'mana' | 'stamina' | 'revival' | 'none';
   value?: number; // How much it heals/restores or costs in gold
+  isEquippable?: boolean;
+  equipmentStats?: EquipmentStats;
+}
+
+// Equipment stats
+export interface EquipmentStats {
+  slot: EquipmentSlot;
+  attackType?: AttackType;
+  statBonuses?: { attribute: string; value: number }[];
+  armor?: number;
+  requiredClass?: PlayerClass | 'any';
+  requiredLevel?: number;
+}
+
+// Equippable Item
+export interface EquippableItem extends InventoryItem {
+  isEquippable: true;
+  equipmentStats: EquipmentStats;
 }
 
 export interface Achievement {
@@ -169,9 +265,10 @@ export interface Quest {
   xpReward: number;
   goldReward?: number; // Gold reward for completing the quest
   itemReward?: {
-    type: 'potion' | 'elixir' | 'other';
+    type: 'potion' | 'elixir' | 'other' | 'weapon' | 'armor';
     name: string;
     quantity: number;
+    equipmentStats?: EquipmentStats;
   };
   completed: boolean;
   progress: number;
@@ -279,6 +376,195 @@ export interface QuestSchedule {
   monthly: Quest[];
 }
 
+// Starter quest for each class
+export const STARTER_QUEST_REWARDS: Record<PlayerClass, {
+  armorSet: {
+    head: Partial<EquippableItem>;
+    body: Partial<EquippableItem>;
+    legs: Partial<EquippableItem>;
+    hands: Partial<EquippableItem>;
+    feet: Partial<EquippableItem>;
+  }
+}> = {
+  Knight: {
+    armorSet: {
+      head: {
+        name: "Rusty Bronze Helm",
+        type: "armor",
+        description: "A basic bronze helmet showing signs of wear.",
+        equipmentStats: {
+          slot: "head",
+          armor: 1,
+          requiredClass: "Knight",
+          requiredLevel: 1
+        }
+      },
+      body: {
+        name: "Rusty Bronze Armor",
+        type: "armor",
+        description: "A basic bronze chest piece showing signs of wear.",
+        equipmentStats: {
+          slot: "body",
+          armor: 1,
+          requiredClass: "Knight",
+          requiredLevel: 1
+        }
+      },
+      legs: {
+        name: "Rusty Bronze Greaves",
+        type: "armor",
+        description: "Basic bronze leg armor showing signs of wear.",
+        equipmentStats: {
+          slot: "legs",
+          armor: 1,
+          requiredClass: "Knight",
+          requiredLevel: 1
+        }
+      },
+      hands: {
+        name: "Rusty Bronze Gloves",
+        type: "armor",
+        description: "Basic bronze gauntlets showing signs of wear.",
+        equipmentStats: {
+          slot: "hands",
+          armor: 1,
+          requiredClass: "Knight",
+          requiredLevel: 1
+        }
+      },
+      feet: {
+        name: "Rusty Bronze Boots",
+        type: "armor",
+        description: "Basic bronze boots showing signs of wear.",
+        equipmentStats: {
+          slot: "feet",
+          armor: 1,
+          requiredClass: "Knight",
+          requiredLevel: 1
+        }
+      }
+    }
+  },
+  Wizard: {
+    armorSet: {
+      head: {
+        name: "Torn Cloth Hat",
+        type: "armor",
+        description: "A simple cloth hat with some tears.",
+        equipmentStats: {
+          slot: "head",
+          armor: 1,
+          requiredClass: "Wizard",
+          requiredLevel: 1
+        }
+      },
+      body: {
+        name: "Torn Cloth Tunic",
+        type: "armor",
+        description: "A simple cloth tunic with some tears.",
+        equipmentStats: {
+          slot: "body",
+          armor: 1,
+          requiredClass: "Wizard",
+          requiredLevel: 1
+        }
+      },
+      legs: {
+        name: "Torn Cloth Trousers",
+        type: "armor",
+        description: "Simple cloth trousers with some tears.",
+        equipmentStats: {
+          slot: "legs",
+          armor: 1,
+          requiredClass: "Wizard",
+          requiredLevel: 1
+        }
+      },
+      hands: {
+        name: "Torn Cloth Gloves",
+        type: "armor",
+        description: "Simple cloth gloves with some tears.",
+        equipmentStats: {
+          slot: "hands",
+          armor: 1,
+          requiredClass: "Wizard",
+          requiredLevel: 1
+        }
+      },
+      feet: {
+        name: "Torn Cloth Boots",
+        type: "armor",
+        description: "Simple cloth boots with some tears.",
+        equipmentStats: {
+          slot: "feet",
+          armor: 1,
+          requiredClass: "Wizard",
+          requiredLevel: 1
+        }
+      }
+    }
+  },
+  Ranger: {
+    armorSet: {
+      head: {
+        name: "Worn Leather Cap",
+        type: "armor",
+        description: "A basic leather cap showing signs of wear.",
+        equipmentStats: {
+          slot: "head",
+          armor: 1,
+          requiredClass: "Ranger",
+          requiredLevel: 1
+        }
+      },
+      body: {
+        name: "Worn Leather Armor",
+        type: "armor",
+        description: "Basic leather armor showing signs of wear.",
+        equipmentStats: {
+          slot: "body",
+          armor: 1,
+          requiredClass: "Ranger",
+          requiredLevel: 1
+        }
+      },
+      legs: {
+        name: "Worn Leather Chausse",
+        type: "armor",
+        description: "Basic leather leg protection showing signs of wear.",
+        equipmentStats: {
+          slot: "legs",
+          armor: 1,
+          requiredClass: "Ranger",
+          requiredLevel: 1
+        }
+      },
+      hands: {
+        name: "Worn Leather Gloves",
+        type: "armor",
+        description: "Basic leather gloves showing signs of wear.",
+        equipmentStats: {
+          slot: "hands",
+          armor: 1,
+          requiredClass: "Ranger",
+          requiredLevel: 1
+        }
+      },
+      feet: {
+        name: "Worn Leather Boots",
+        type: "armor",
+        description: "Basic leather boots showing signs of wear.",
+        equipmentStats: {
+          slot: "feet",
+          armor: 1,
+          requiredClass: "Ranger",
+          requiredLevel: 1
+        }
+      }
+    }
+  }
+};
+
 // Default quest generation
 export const QUEST_TYPES = {
   DAILY: {
@@ -314,6 +600,16 @@ export const QUEST_TYPES = {
         name: 'Revival Elixir',
         quantity: 1
       }
+    }
+  },
+  STARTER: {
+    WALKING_DISTANCE: {
+      type: 'tutorial',
+      name: 'First Steps',
+      description: 'Walk 1 km to complete your basic training.',
+      targetCount: 1,
+      xpReward: 100,
+      goldReward: 50
     }
   }
 };

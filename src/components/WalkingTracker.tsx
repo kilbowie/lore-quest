@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Walking } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '../context/AuthContext';
 import { getUserWalkingData, updateWalkingData, addExperience } from '../utils/xpUtils';
@@ -88,7 +88,7 @@ const WalkingTracker: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <h3 className="text-sm font-medium text-lorequest-gold flex items-center gap-1">
-                <Walking size={16} className="text-lorequest-gold" />
+                <Activity size={16} className="text-lorequest-gold" />
                 Walking XP
               </h3>
             </TooltipTrigger>

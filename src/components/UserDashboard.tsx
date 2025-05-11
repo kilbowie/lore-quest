@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { User, Achievement } from '../types';
+import { User, Achievement, LEVEL_CONSTANTS } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateLevelProgress, xpToNextLevel } from '../utils/xpUtils';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +24,7 @@ const UserDashboard: React.FC<{
   
   if (!user) return null;
   
+  // Calculate all the level-related values
   const levelProgress = calculateLevelProgress(user);
   const xpNeeded = xpToNextLevel(user.level);
   const currentLevelXp = user.experience - calculateXpForLevel(user.level);

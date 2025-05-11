@@ -884,14 +884,17 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
           
           // Add item reward if available
           if (quest.itemReward) {
+            // Fix the type issue by explicitly typing it as a union type
             const reward = { 
               type: quest.itemReward.type as "potion" | "elixir" | "other", 
               name: quest.itemReward.name, 
               quantity: quest.itemReward.quantity 
             };
+            
+            // Make sure to pass the correctly typed value
             addItemToInventory(
               updatedUser,
-              reward.type as "potion" | "elixir" | "other",
+              reward.type,
               reward.name,
               `Reward from ${quest.name} quest`,
               reward.quantity

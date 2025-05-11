@@ -25,7 +25,7 @@ import TimedQuests from './TimedQuests';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'react-toastify';
+import { toast } from '@/components/ui/sonner';
 
 const UserDashboard: React.FC<{
   onClose: () => void;
@@ -805,16 +805,8 @@ const UserDashboard: React.FC<{
                               aria-label={`${achievement.name} progress: ${Math.floor(ua.progress * 100)}%`}
                             />
                           </div>
-                          <div className="mt-2 text-xs flex justify-between items-center">
-                            <div className={ua.completed ? "text-green-400" : "text-lorequest-gold"}>
-                              Reward: {achievement.xpReward} XP
-                            </div>
-                            {achievement.goldReward && (
-                              <div className={`flex items-center gap-1 ${ua.completed ? "text-green-400" : "text-lorequest-gold"}`}>
-                                <BaggageClaim size={12} />
-                                {achievement.goldReward} Gold
-                              </div>
-                            )}
+                          <div className="mt-2 text-xs text-lorequest-gold">
+                            Reward: {achievement.xpReward} XP
                           </div>
                         </div>
                       );

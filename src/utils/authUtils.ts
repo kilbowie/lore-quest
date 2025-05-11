@@ -1,8 +1,24 @@
 import { User } from "../types";
-import { USERS_STORAGE_KEY, updateUserInStorage } from "./storageUtils";
+import { updateUser } from "./xpUtils";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "@/components/ui/sonner";
 import { completeVerificationQuest } from "./xpUtils";
+
+// Define missing constants
+export const USERS_STORAGE_KEY = 'lorequest_users';
+
+// Function to update user in storage
+export const updateUserInStorage = (updatedUser: User): void => {
+  const users = getUsers();
+  const userIndex = users.findIndex(user => user.id === updatedUser.id);
+  
+  if (userIndex === -1) {
+    throw new Error('User not found');
+  }
+  
+  users[userIndex] = updatedUser;
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+};
 
 // Function to create a new user
 export const createUser = (name: string, email: string, username: string, password: string): User | null => {
@@ -13,7 +29,9 @@ export const createUser = (name: string, email: string, username: string, passwo
     return null;
   }
 
-  const newUser: User = {
+  type UserWithPassword = User & { password: string };
+
+  const newUser: UserWithPassword = {
     id: uuidv4(),
     name,
     email,
@@ -31,7 +49,31 @@ export const createUser = (name: string, email: string, username: string, passwo
     emailVerified: false,
     lastRegenerationTime: new Date(),
     isDead: false,
-    playerClass: 'Knight'
+    playerClass: 'Knight' as 'Knight' | 'Wizard' | 'Ranger',
+    createdAt: new Date(),
+    stats: {
+      strength: 1,
+      intelligence: 1,
+      dexterity: 1,
+      distanceTravelled: 0,
+      locationsDiscovered: 0,
+      totalXpEarned: 0,
+      questXpEarned: 0,
+      walkingXpEarned: 0,
+      totalGoldEarned: 0,
+      questGoldEarned: 0,
+      questsCompleted: 0,
+      achievementsUnlocked: 0,
+      dailyQuestsCompleted: 0,
+      weeklyQuestsCompleted: 0,
+      monthlyQuestsCompleted: 0
+    },
+    health: 10,
+    maxHealth: 10,
+    mana: 10,
+    maxMana: 10,
+    stamina: 10,
+    maxStamina: 10
   };
 
   existingUsers.push(newUser);
@@ -41,7 +83,8 @@ export const createUser = (name: string, email: string, username: string, passwo
 
 // Function to login user
 export const loginUser = (usernameOrEmail: string, password: string): User | null => {
-  const users = getUsers();
+  type UserWithPassword = User & { password: string };
+  const users = getUsers() as UserWithPassword[];
   const user = users.find(
     u => (u.username === usernameOrEmail || u.email === usernameOrEmail) && u.password === password
   );
@@ -80,7 +123,7 @@ export const updateUser = (updatedUser: User): void => {
 };
 
 // Function to set user class
-export const setUserClass = (userId: string, playerClass: string): User => {
+export const setUserClass = (userId: string, playerClass: 'Knight' | 'Wizard' | 'Ranger'): User => {
   const users = getUsers();
   const userIndex = users.findIndex(user => user.id === userId);
   
@@ -88,7 +131,7 @@ export const setUserClass = (userId: string, playerClass: string): User => {
     throw new Error('User not found');
   }
   
-  const updatedUser = { ...users[userIndex], playerClass: playerClass };
+  const updatedUser = { ...users[userIndex], playerClass };
   users[userIndex] = updatedUser;
   
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
@@ -113,14 +156,31 @@ export const completeEmailVerification = (userId: string): void => {
     // Mark email as verified
     user.emailVerified = true;
     
-    // Add email verification quest rewards
-    const xpReward = 100;
-    const goldReward = 50;
-    
     // Complete the quest and award XP and Gold
     const updatedUser = completeVerificationQuest(user);
     
     // Save updated user
     updateUser(updatedUser);
   }
+};
+
+// Add missing verification functions
+export const verifyEmail = (token: string): boolean => {
+  // Mock implementation - in a real app, this would verify with a backend
+  return token.length > 5; // Simple validation for demo
+};
+
+export const resendVerificationEmail = (email: string): boolean => {
+  // Mock implementation - in a real app, this would trigger an email
+  return email.includes('@'); // Simple validation for demo
+};
+
+export const requestPasswordReset = (email: string): boolean => {
+  // Mock implementation
+  return email.includes('@');
+};
+
+export const resetPassword = (token: string, newPassword: string): boolean => {
+  // Mock implementation
+  return token.length > 5 && newPassword.length > 5;
 };

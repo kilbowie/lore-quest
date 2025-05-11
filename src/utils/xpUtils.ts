@@ -1028,3 +1028,37 @@ export const addVerificationQuest = (user: User): User => {
   
   return updatedUser;
 };
+
+// Function to upgrade a stat with a rune
+export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence' | 'dexterity', runeId: string): User => {
+  const updatedUser = { ...user };
+  
+  // Check if the rune exists in user's inventory
+  const runeIndex = updatedUser.inventory.findIndex(item => item.id === runeId && item.type === 'rune');
+  if (runeIndex === -1) {
+    toast.error('Rune not found in your inventory');
+    return updatedUser;
+  }
+  
+  // Upgrade the stat
+  if (!updatedUser.stats) {
+    initializeUserStats(updatedUser);
+  }
+  
+  // Apply the stat increase
+  updatedUser.stats[stat] += 1;
+  
+  // Remove the rune from inventory
+  updatedUser.inventory[runeIndex].quantity -= 1;
+  if (updatedUser.inventory[runeIndex].quantity <= 0) {
+    updatedUser.inventory = updatedUser.inventory.filter(item => item.id !== runeId);
+  }
+  
+  // Recalculate player stats based on new attribute values
+  recalculatePlayerStats(updatedUser);
+  
+  // Notify the user
+  toast.success(`${stat.charAt(0).toUpperCase() + stat.slice(1)} increased by 1!`);
+  
+  return updatedUser;
+};

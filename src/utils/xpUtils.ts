@@ -927,4 +927,104 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
     
     // Update all quest types
     questsData.daily = questsData.daily.map(updateQuestProgress);
-    questsData.weekly = questsData.weekly.map(updateQuestProgress
+    questsData.weekly = questsData.weekly.map(updateQuestProgress);
+    questsData.monthly = questsData.monthly.map(updateQuestProgress);
+    
+    // Save updated quests if there were changes
+    if (questsUpdated) {
+      localStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(questsData));
+    }
+    
+    return updatedUser;
+  } catch (error) {
+    console.error('Error updating quest progress:', error);
+    return updatedUser;
+  }
+};
+
+// Helper functions for date calculations
+const getStartOfWeek = (date: Date): Date => {
+  const newDate = new Date(date);
+  const day = newDate.getDay();
+  const diff = newDate.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  newDate.setDate(diff);
+  newDate.setHours(0, 0, 0, 0);
+  return newDate;
+};
+
+const getStartOfMonth = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setDate(1);
+  newDate.setHours(0, 0, 0, 0);
+  return newDate;
+};
+
+const getEndOfMonth = (date: Date): Date => {
+  const newDate = new Date(date);
+  newDate.setMonth(newDate.getMonth() + 1);
+  newDate.setDate(0);
+  newDate.setHours(23, 59, 59, 999);
+  return newDate;
+};
+
+// Function to complete the email verification quest
+export const completeVerificationQuest = (user: User): User => {
+  const updatedUser = { ...user };
+  
+  // Fixed XP and gold rewards
+  const xpReward = 100;
+  const goldReward = 50;
+  
+  // Add XP
+  updatedUser.experience += xpReward;
+  
+  // Add gold
+  if (updatedUser.gold === undefined) {
+    updatedUser.gold = 0;
+  }
+  updatedUser.gold += goldReward;
+  
+  // Initialize stats if needed
+  if (!updatedUser.stats) {
+    initializeUserStats(updatedUser);
+  }
+  
+  // Update stats
+  updatedUser.stats.totalXpEarned += xpReward;
+  updatedUser.stats.questXpEarned += xpReward;
+  updatedUser.stats.totalGoldEarned += goldReward;
+  updatedUser.stats.questGoldEarned += goldReward;
+  updatedUser.stats.questsCompleted += 1;
+  
+  toast.success('Email Verified!', {
+    description: `You earned ${xpReward} XP and ${goldReward} gold.`
+  });
+  
+  return updatedUser;
+};
+
+// Add verification quest to user
+export const addVerificationQuest = (user: User): User => {
+  const updatedUser = { ...user };
+  
+  // Check if user already has this achievement
+  if (!updatedUser.achievements.some(a => a.achievementId === 'email-verification')) {
+    // Add verification achievement
+    const verificationAchievement: UserAchievement = {
+      achievementId: 'email-verification',
+      isCompleted: false,
+      progress: 0,
+      isTracked: true,
+      dateAwarded: null
+    };
+    
+    updatedUser.achievements.push(verificationAchievement);
+    
+    // Add to active quests
+    if (!updatedUser.activeQuests.includes('email-verification')) {
+      updatedUser.activeQuests.push('email-verification');
+    }
+  }
+  
+  return updatedUser;
+};

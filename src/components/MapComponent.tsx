@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -1081,6 +1080,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
         // Add administrative boundaries
         addAdministrativeBoundaries(map.current);
         
+        // Add continent coloring
+        addContinentColoring(map.current, isDarkMode);
+        
         // Add city markers for all locations
         cityLocations.forEach(city => {
           const isDiscovered = discoveredLocations.some(loc => loc.id === city.id);
@@ -1288,6 +1290,97 @@ const MapComponent: React.FC<MapComponentProps> = ({
     });
   };
 
+  // Function to add continent coloring
+  const addContinentColoring = (map: mapboxgl.Map, isDark: boolean) => {
+    // Add continent source
+    map.addSource('continents', {
+      'type': 'vector',
+      'url': 'mapbox://mapbox.boundaries-adm0-v4'
+    });
+    
+    // Define continent colors based on dark/light mode
+    const continentColors = {
+      northAmerica: isDark ? '#1E3A8A' : '#1EAEDB', // Blue
+      southAmerica: isDark ? '#1F4D3A' : '#2E8B57', // Green
+      europe: isDark ? '#8B7D2B' : '#FEF7CD',       // Yellow
+      unitedKingdom: isDark ? '#4C3A80' : '#9b87f5', // Purple
+      asia: isDark ? '#8B2E35' : '#ea384c',         // Red
+      africa: isDark ? '#6B4226' : '#8B4513',       // Brown
+      australia: isDark ? '#904D1D' : '#F97316',    // Orange
+      antarctica: isDark ? '#BEBEBE' : '#FFFFFF'    // White
+    };
+    
+    // Define continent regions by country codes
+    const continentRegions = {
+      northAmerica: ['USA', 'CAN', 'MEX', 'GTM', 'BLZ', 'SLV', 'HND', 'NIC', 'CRI', 'PAN'],
+      southAmerica: ['COL', 'VEN', 'GUY', 'SUR', 'GUF', 'BRA', 'ECU', 'PER', 'BOL', 'PRY', 'CHL', 'ARG', 'URY'],
+      europe: ['PRT', 'ESP', 'FRA', 'BEL', 'NLD', 'DEU', 'DNK', 'SWE', 'NOR', 'FIN', 'EST', 'LVA', 'LTU', 'POL', 'CZE', 'SVK', 'AUT', 'HUN', 'ROU', 'BGR', 'GRC', 'ITA', 'CHE', 'AUT', 'SVN', 'HRV', 'BIH', 'SRB', 'MNE', 'ALB', 'MKD'],
+      unitedKingdom: ['GBR'],
+      asia: ['TUR', 'SYR', 'IRQ', 'IRN', 'AFG', 'PAK', 'IND', 'NPL', 'BTN', 'BGD', 'MMR', 'THA', 'LAO', 'VNM', 'KHM', 'MYS', 'SGP', 'IDN', 'PHL', 'CHN', 'MNG', 'JPN', 'KOR', 'PRK'],
+      africa: ['MAR', 'DZA', 'TUN', 'LBY', 'EGY', 'SDN', 'TCD', 'ERI', 'DJI', 'ETH', 'SOM', 'KEN', 'UGA', 'TZA', 'RWA', 'BDI', 'COD', 'COG', 'GAB', 'CMR', 'CAF', 'SSD', 'NGA', 'NER', 'MLI', 'MRT', 'SEN', 'GIN', 'LBR', 'CIV', 'GHA', 'TGO', 'BEN', 'NAM', 'BWA', 'ZAF', 'LSO', 'SWZ', 'MOZ', 'ZWE', 'ZMB', 'MWI', 'AGO'],
+      australia: ['AUS', 'NZL', 'PNG'],
+      antarctica: ['ATA']
+    };
+    
+    // Add a layer for each continent with its specific color
+    Object.entries(continentRegions).forEach(([continent, countries]) => {
+      const continentColor = continentColors[continent as keyof typeof continentColors];
+      const filterExpression = ['in', ['get', 'iso_3166_1'], ['literal', countries]];
+      
+      map.addLayer({
+        'id': `continent-${continent}`,
+        'type': 'fill',
+        'source': 'continents',
+        'source-layer': 'boundaries_admin_0',
+        'filter': filterExpression,
+        'paint': {
+          'fill-color': continentColor,
+          'fill-opacity': 0.3
+        }
+      }, 'admin-1-boundaries');
+      
+      // Add continent outline
+      map.addLayer({
+        'id': `continent-${continent}-outline`,
+        'type': 'line',
+        'source': 'continents',
+        'source-layer': 'boundaries_admin_0',
+        'filter': filterExpression,
+        'paint': {
+          'line-color': continentColor,
+          'line-width': 1,
+          'line-opacity': 0.8
+        }
+      }, 'admin-1-boundaries');
+    });
+    
+    // Add Ireland to UK coloring for our app's purposes
+    map.addLayer({
+      'id': 'continent-ireland',
+      'type': 'fill',
+      'source': 'continents',
+      'source-layer': 'boundaries_admin_0',
+      'filter': ['in', ['get', 'iso_3166_1'], ['literal', ['IRL']]],
+      'paint': {
+        'fill-color': continentColors.unitedKingdom,
+        'fill-opacity': 0.3
+      }
+    }, 'admin-1-boundaries');
+    
+    map.addLayer({
+      'id': 'continent-ireland-outline',
+      'type': 'line',
+      'source': 'continents',
+      'source-layer': 'boundaries_admin_0',
+      'filter': ['in', ['get', 'iso_3166_1'], ['literal', ['IRL']]],
+      'paint': {
+        'line-color': continentColors.unitedKingdom,
+        'line-width': 1,
+        'line-opacity': 0.8
+      }
+    }, 'admin-1-boundaries');
+  };
+
   // Update user position and check for discoveries
   useEffect(() => {
     if (!map.current || !isMapInitialized || !userLocation) return;
@@ -1357,6 +1450,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         if (!map.current) return;
         applyFantasyMapStyle(map.current, isDarkMode);
         addAdministrativeBoundaries(map.current);
+        addContinentColoring(map.current, isDarkMode);
       });
     }
   }, [isDarkMode, isMapInitialized]);

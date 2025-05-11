@@ -1,5 +1,4 @@
-
-import { User, ItemType, EquipmentStats, InventoryItem, EquippableItem, EquipmentSlot, AttackType, COMBAT_EFFECTIVENESS, COMBAT_CONSTANTS, PlayerClass, QUEST_TYPES, LEVEL_CONSTANTS, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS } from '../types';
+import { User, ItemType, EquipmentStats, InventoryItem, EquippableItem, EquipmentSlot, AttackType, COMBAT_EFFECTIVENESS, COMBAT_CONSTANTS, PlayerClass, QUEST_TYPES, LEVEL_CONSTANTS, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS, STARTER_QUEST_REWARDS } from '../types';
 import { toast } from "@/components/ui/sonner";
 import { updateUser } from './authUtils';
 
@@ -28,19 +27,37 @@ export const addItemToInventory = (
     user.inventory[existingItemIndex].quantity += quantity;
     item = user.inventory[existingItemIndex];
   } else {
-    // Add new item
-    item = {
-      id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-      type,
-      name,
-      description,
-      quantity,
-      icon,
-      useEffect,
-      value,
-      isEquippable,
-      equipmentStats
-    };
+    // Add new item, ensuring it matches the required type
+    if (isEquippable && equipmentStats) {
+      // Create an EquippableItem
+      const equippableItem: EquippableItem = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+        type,
+        name,
+        description,
+        quantity,
+        icon,
+        useEffect,
+        value,
+        isEquippable: true, // Must be true for EquippableItem
+        equipmentStats
+      };
+      item = equippableItem;
+    } else {
+      // Create a regular InventoryItem
+      item = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+        type,
+        name,
+        description,
+        quantity,
+        icon,
+        useEffect,
+        value,
+        isEquippable,
+        equipmentStats
+      };
+    }
     user.inventory.push(item);
   }
   
@@ -361,7 +378,7 @@ export const handleLevelUp = (user: User, oldLevel: number): User => {
   return updatedUser;
 };
 
-// Function to handle completing the starter quest
+// Function to handle completing the starter quest - implement STARTER_QUEST_REWARDS
 export const completeStarterQuest = (user: User, playerClass: PlayerClass): User => {
   const updatedUser = { ...user };
   

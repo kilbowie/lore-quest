@@ -30,7 +30,7 @@ export const addItemToInventory = (
   } else {
     // Add new item, ensuring it matches the required type
     if (isEquippable && equipmentStats) {
-      // For equippable items, we need to ensure isEquippable is literal 'true'
+      // For equippable items, we need to create a properly typed EquippableItem
       const equippableItem: EquippableItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         type,
@@ -40,7 +40,7 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable: true,
+        isEquippable: true as const, // Use const assertion to ensure it's the literal 'true'
         equipmentStats
       };
       
@@ -57,7 +57,7 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable: isEquippable || false,
+        isEquippable: false, // Explicitly set to false for regular items
         equipmentStats
       };
       

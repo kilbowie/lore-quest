@@ -1,4 +1,3 @@
-
 import { 
   LEVEL_CONSTANTS, User, Achievement, UserAchievement, InventoryItem, 
   UserStats, STAT_MULTIPLIERS, PlayerClass, CLASS_DESCRIPTIONS, 
@@ -892,7 +891,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
             };
             addItemToInventory(
               updatedUser,
-              reward.type,
+              reward.type as "potion" | "elixir" | "other",
               reward.name,
               `Reward from ${quest.name} quest`,
               reward.quantity
@@ -1015,8 +1014,7 @@ export const addVerificationQuest = (user: User): User => {
       achievementId: 'email-verification',
       completed: false,
       progress: 0,
-      isTracked: true,
-      dateAwarded: null
+      isTracked: true
     };
     
     updatedUser.achievements.push(verificationAchievement);

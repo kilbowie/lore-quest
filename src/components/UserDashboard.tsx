@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Achievement, LEVEL_CONSTANTS } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +25,7 @@ import TimedQuests from './TimedQuests';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'react-toastify';
 
 const UserDashboard: React.FC<{
   onClose: () => void;
@@ -71,7 +71,14 @@ const UserDashboard: React.FC<{
   const handleStatUpgrade = (stat: 'strength' | 'intelligence' | 'dexterity') => {
     if (!user) return;
     
-    const updatedUser = upgradeStatWithRune(user, stat);
+    // Find a rune in the inventory to use
+    const rune = user.inventory.find(item => item.type === 'rune');
+    if (!rune) {
+      toast.error('No runes available');
+      return;
+    }
+    
+    const updatedUser = upgradeStatWithRune(user, stat, rune.id);
     updateCurrentUser(updatedUser);
   };
   

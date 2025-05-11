@@ -246,7 +246,7 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
                   <RadioGroupItem value="Ranger" id="ranger" className="mt-1" />
                   <div className="flex-1">
                     <Label htmlFor="ranger" className="flex items-center text-lorequest-gold font-semibold cursor-pointer">
-                      <Walking size={16} className="mr-2" /> Ranger
+                      <Activity size={16} className="mr-2" /> Ranger
                     </Label>
                     <p className="text-lorequest-parchment text-sm mt-1">
                       {CLASS_DESCRIPTIONS.Ranger.description}

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Activity } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -81,7 +82,7 @@ const WalkingTracker: React.FC<WalkingTrackerProps> = ({ showDetails, onWalkingP
       <div className="flex justify-end">
         <Button 
           variant="outline"
-          size="xs"
+          size="sm"
           onClick={handleSimulateWalking}
           className="border-lorequest-gold/30 text-lorequest-gold"
         >

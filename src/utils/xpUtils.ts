@@ -90,6 +90,27 @@ export const addExperience = (user: User, xpAmount: number, source?: string): Us
   return updatedUser;
 };
 
+// Add walking distance to user and award XP
+export const addWalkingDistance = (user: User, distanceKm: number): User => {
+  const updatedUser = { ...user };
+  
+  // Initialize stats if they don't exist
+  if (!updatedUser.stats) {
+    initializeUserStats(updatedUser);
+  }
+  
+  // Update distance travelled
+  updatedUser.stats.distanceTravelled += distanceKm;
+  
+  // Check if we should update quests progress
+  updatedUser = checkQuestProgress(updatedUser, 'walk', distanceKm);
+  
+  // Update user in storage
+  updateUser(updatedUser);
+  
+  return updatedUser;
+};
+
 // Initialize user stats if they don't exist
 export const initializeUserStats = (user: User): User => {
   if (!user.stats) {
@@ -906,171 +927,4 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
     
     // Update all quest types
     questsData.daily = questsData.daily.map(updateQuestProgress);
-    questsData.weekly = questsData.weekly.map(updateQuestProgress);
-    questsData.monthly = questsData.monthly.map(updateQuestProgress);
-    
-    // Save updated quests
-    if (questsUpdated) {
-      localStorage.setItem(QUESTS_STORAGE_KEY, JSON.stringify(questsData));
-    }
-    
-    // Save updated user
-    updateUser(updatedUser);
-  } catch (error) {
-    console.error('Failed to update quests progress:', error);
-  }
-  
-  return updatedUser;
-};
-
-// Helper functions for date calculations
-const getStartOfWeek = (date: Date): Date => {
-  const result = new Date(date);
-  result.setDate(date.getDate() - date.getDay()); // Set to Sunday
-  result.setHours(0, 0, 0, 0);
-  return result;
-};
-
-const getStartOfMonth = (date: Date): Date => {
-  const result = new Date(date);
-  result.setDate(1);
-  result.setHours(0, 0, 0, 0);
-  return result;
-};
-
-const getEndOfMonth = (date: Date): Date => {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + 1);
-  result.setDate(0); // Last day of current month
-  result.setHours(23, 59, 59, 999);
-  return result;
-};
-
-// Email verification quest
-export const addVerificationQuest = (user: User): User => {
-  const updatedUser = { ...user };
-  
-  // Create verification achievement if not exists
-  const hasVerificationAchievement = updatedUser.achievements.some(
-    a => a.achievementId === 'email-verification'
-  );
-  
-  if (!hasVerificationAchievement) {
-    const verificationAchievement: UserAchievement = {
-      achievementId: 'email-verification',
-      completed: false,
-      progress: user.emailVerified ? 1 : 0,
-      isTracked: true
-    };
-    
-    updatedUser.achievements.push(verificationAchievement);
-    
-    // Add to active quests
-    if (!updatedUser.activeQuests.includes('email-verification')) {
-      updatedUser.activeQuests.push('email-verification');
-    }
-  }
-  
-  return updatedUser;
-};
-
-// Complete email verification quest
-export const completeVerificationQuest = (user: User): User => {
-  const updatedUser = { ...user };
-  
-  // Find verification achievement
-  const achievementIndex = updatedUser.achievements.findIndex(
-    a => a.achievementId === 'email-verification'
-  );
-  
-  if (achievementIndex >= 0 && !updatedUser.achievements[achievementIndex].completed) {
-    // Mark as completed
-    updatedUser.achievements[achievementIndex].completed = true;
-    updatedUser.achievements[achievementIndex].progress = 1;
-    updatedUser.achievements[achievementIndex].completedAt = new Date();
-    
-    // Award XP and Gold
-    const xpReward = 100;
-    const goldReward = 50;
-    
-    // Add XP
-    updatedUser.experience += xpReward;
-    
-    // Add Gold
-    updatedUser.gold = (updatedUser.gold || 0) + goldReward;
-    
-    // Update stats
-    if (!updatedUser.stats) {
-      initializeUserStats(updatedUser);
-    }
-    
-    updatedUser.stats.totalXpEarned += xpReward;
-    updatedUser.stats.questXpEarned += xpReward;
-    updatedUser.stats.totalGoldEarned += goldReward;
-    updatedUser.stats.questGoldEarned += goldReward;
-    updatedUser.stats.questsCompleted++;
-    
-    // Show notification
-    toast.success('Email Verification Complete!', {
-      description: `Earned ${xpReward} XP and ${goldReward} Gold!`
-    });
-    
-    // Add to completed quests
-    if (!updatedUser.completedQuests.includes('email-verification')) {
-      updatedUser.completedQuests.push('email-verification');
-    }
-    
-    // Remove from active quests
-    updatedUser.activeQuests = updatedUser.activeQuests.filter(id => id !== 'email-verification');
-  }
-  
-  return updatedUser;
-};
-
-// Upgrade stats using runes
-export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence' | 'dexterity'): User => {
-  const updatedUser = { ...user };
-  
-  // Check if user has any runes
-  const runesCount = updatedUser.inventory.reduce((total, item) => {
-    return item.type === 'rune' ? total + item.quantity : total;
-  }, 0);
-  
-  if (runesCount === 0) {
-    toast.error('No Runes Available', {
-      description: 'You need runes to upgrade your stats. Level up to earn more runes.'
-    });
-    return updatedUser;
-  }
-  
-  // Initialize stats if they don't exist
-  if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
-  }
-  
-  // Find the first rune in inventory
-  const runeIndex = updatedUser.inventory.findIndex(item => item.type === 'rune' && item.quantity > 0);
-  
-  if (runeIndex >= 0) {
-    // Use one rune
-    updatedUser.inventory[runeIndex].quantity -= 1;
-    
-    // If quantity becomes 0, remove the item
-    if (updatedUser.inventory[runeIndex].quantity <= 0) {
-      updatedUser.inventory = updatedUser.inventory.filter((_, index) => index !== runeIndex);
-    }
-    
-    // Upgrade the stat
-    updatedUser.stats[stat] += 1;
-    
-    // Recalculate player stats
-    recalculatePlayerStats(updatedUser);
-    
-    // Show notification
-    toast.success(`${stat.charAt(0).toUpperCase() + stat.slice(1)} Increased!`, {
-      description: `Your ${stat} is now ${updatedUser.stats[stat]}.`
-    });
-  }
-  
-  return updatedUser;
-};
+    questsData.weekly = questsData.weekly.map(updateQuestProgress

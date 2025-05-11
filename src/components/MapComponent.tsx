@@ -1,16 +1,20 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location, UserLocation } from '../types';
 import { calculateDistance } from '../utils/geoUtils';
 import { toast } from '@/components/ui/sonner';
-import { Compass, Map } from 'lucide-react';
+import { Sun, Moon, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MapComponentProps {
   userLocation: UserLocation | null;
   discoveredLocations: Location[];
   onLocationDiscovered: (location: Location) => void;
   apiKey: string;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 const DISCOVERY_THRESHOLD = 0.5; // miles
@@ -19,7 +23,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
   userLocation, 
   discoveredLocations, 
   onLocationDiscovered, 
-  apiKey 
+  apiKey,
+  isDarkMode = false,
+  onToggleDarkMode = () => {}
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -27,7 +33,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const hasMovedMapRef = useRef<boolean>(false);
   
-  // UK locations - Continent = UK, Realm = Countries, Territory = Cities
+  // Get all city locations from imported data
   const cityLocations: Location[] = [
     // England - Adding all the requested cities
     {
@@ -1054,12 +1060,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
       
       mapboxgl.accessToken = apiKey;
       
+      // Use Mercator projection as requested
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/dark-v11', // Dark style for fantasy feel
-        center: userLocation ? [userLocation.longitude, userLocation.latitude] : [-98.5795, 39.8283], // US center
-        zoom: userLocation ? 10 : 3,
-        pitch: 45,
+        style: isDarkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+        center: userLocation ? [userLocation.longitude, userLocation.latitude] : [-2.5, 54.0], // Center on UK by default
+        zoom: userLocation ? 10 : 5.5,
+        projection: 'mercator', // Changed to Mercator projection
         attributionControl: false,
         antialias: true
       });
@@ -1068,23 +1075,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
       map.current.on('load', () => {
         if (!map.current) return;
         
-        // Add fog effect for more fantasy atmosphere
-        map.current.setFog({
-          'color': 'rgb(13, 17, 23)', // Dark blue from brand colors
-          'high-color': 'rgb(36, 92, 223)',
-          'horizon-blend': 0.2,
-          'space-color': 'rgb(11, 11, 25)',
-          'star-intensity': 0.8
-        });
+        // Apply fantasy styling based on dark mode setting
+        applyFantasyMapStyle(map.current, isDarkMode);
 
-        // Custom styling for land and water
-        if (map.current.getLayer('land')) {
-          map.current.setPaintProperty('land', 'background-color', '#252D3A');
-        }
-        
-        if (map.current.getLayer('water')) {
-          map.current.setPaintProperty('water', 'fill-color', '#263A54');
-        }
+        // Add administrative boundaries
+        addAdministrativeBoundaries(map.current);
         
         // Add city markers for all locations
         cityLocations.forEach(city => {
@@ -1113,12 +1108,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
           new mapboxgl.Marker(el)
             .setLngLat([city.longitude, city.latitude])
             .setPopup(
-              new mapboxgl.Popup({ offset: 25, closeButton: false, className: 'bg-lorequest-dark border border-lorequest-gold' })
+              new mapboxgl.Popup({ offset: 25, closeButton: false, className: isDarkMode ? 'dark-popup' : 'light-popup' })
                 .setHTML(`
                   <div class="p-2 text-center">
-                    <h3 class="font-bold text-lorequest-gold text-sm">${city.name}</h3>
+                    <h3 class="font-bold ${isDarkMode ? 'text-lorequest-gold' : 'text-lorequest-gold'} text-sm">${city.name}</h3>
                     <div class="fantasy-divider my-1"></div>
-                    <p class="text-xs text-lorequest-parchment">${isDiscovered ? 'Discovered' : 'Undiscovered Territory'}</p>
+                    <p class="text-xs ${isDarkMode ? 'text-lorequest-parchment' : 'text-gray-700'}">${isDiscovered ? 'Discovered' : 'Undiscovered Territory'}</p>
                   </div>
                 `)
             )
@@ -1167,7 +1162,131 @@ const MapComponent: React.FC<MapComponentProps> = ({
         map.current = null;
       }
     };
-  }, [apiKey]);
+  }, [apiKey, isDarkMode]);
+
+  // Function to apply fantasy map styling
+  const applyFantasyMapStyle = (map: mapboxgl.Map, isDark: boolean) => {
+    // Apply different styling based on light/dark mode
+    if (isDark) {
+      // Dark mode styling - midnight blue / muted slate theme
+      map.setPaintProperty('land', 'background-color', '#1A1F2C');
+      map.setPaintProperty('water', 'fill-color', '#252D3A');
+      
+      // Add fog effect for more fantasy atmosphere
+      map.setFog({
+        'color': 'rgb(13, 17, 23)',
+        'high-color': 'rgb(36, 52, 83)',
+        'horizon-blend': 0.2,
+        'space-color': 'rgb(11, 11, 25)',
+        'star-intensity': 0.8
+      });
+    } else {
+      // Light mode styling - parchment / grassland theme
+      map.setPaintProperty('land', 'background-color', '#F5E9C9'); // Warm parchment tone
+      map.setPaintProperty('water', 'fill-color', '#A8CFE5'); // Light sky blue
+      
+      // Add subtle fog effect
+      map.setFog({
+        'color': 'rgb(220, 212, 190)',
+        'high-color': 'rgb(164, 209, 233)',
+        'horizon-blend': 0.1,
+        'space-color': 'rgb(230, 230, 250)',
+        'star-intensity': 0
+      });
+    }
+  };
+
+  // Function to add administrative boundaries
+  const addAdministrativeBoundaries = (map: mapboxgl.Map) => {
+    // Add source for administrative boundaries
+    map.addSource('admin-boundaries', {
+      type: 'vector',
+      url: 'mapbox://mapbox.boundaries-adm1-v4,mapbox.boundaries-adm2-v4'
+    });
+
+    // Add state/province boundaries layer
+    map.addLayer({
+      id: 'admin-1-boundaries',
+      type: 'line',
+      source: 'admin-boundaries',
+      'source-layer': 'boundaries_admin_1',
+      layout: {
+        'visibility': 'visible'
+      },
+      paint: {
+        'line-color': '#B22222', // Red color for boundaries
+        'line-width': 2,
+        'line-opacity': 0.7
+      }
+    });
+
+    // Add county/district boundaries layer
+    map.addLayer({
+      id: 'admin-2-boundaries',
+      type: 'line',
+      source: 'admin-boundaries',
+      'source-layer': 'boundaries_admin_2',
+      layout: {
+        'visibility': 'visible'
+      },
+      paint: {
+        'line-color': '#B22222', // Red color for boundaries
+        'line-width': 1,
+        'line-opacity': 0.5
+      }
+    });
+
+    // Add state/province labels
+    map.addLayer({
+      id: 'admin-1-labels',
+      type: 'symbol',
+      source: 'admin-boundaries',
+      'source-layer': 'boundaries_admin_1',
+      layout: {
+        'text-field': ['get', 'name_en'],
+        'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+        'text-size': 12,
+        'text-transform': 'uppercase',
+        'text-letter-spacing': 0.1,
+        'text-max-width': 7,
+        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+        'text-radial-offset': 0.5,
+        'text-justify': 'auto',
+        'symbol-sort-key': ['get', 'area']
+      },
+      paint: {
+        'text-color': '#D4AF37', // Bold Gold text
+        'text-halo-color': isDarkMode ? '#121212' : '#ffffff',
+        'text-halo-width': 1.5
+      }
+    });
+
+    // Add county/district labels
+    map.addLayer({
+      id: 'admin-2-labels',
+      type: 'symbol',
+      source: 'admin-boundaries',
+      'source-layer': 'boundaries_admin_2',
+      minzoom: 8,
+      layout: {
+        'text-field': ['get', 'name_en'],
+        'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+        'text-size': 10,
+        'text-transform': 'uppercase',
+        'text-letter-spacing': 0.1,
+        'text-max-width': 7,
+        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+        'text-radial-offset': 0.5,
+        'text-justify': 'auto',
+        'symbol-sort-key': ['get', 'area']
+      },
+      paint: {
+        'text-color': '#D4AF37', // Bold Gold text
+        'text-halo-color': isDarkMode ? '#121212' : '#ffffff',
+        'text-halo-width': 1.5
+      }
+    });
+  };
 
   // Update user position and check for discoveries
   useEffect(() => {
@@ -1192,7 +1311,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         .addTo(map.current);
     }
 
-    // Center map on user - Set a UK-centered view when first loaded
+    // Center map on user when first loaded
     if (!hasMovedMapRef.current) {
       map.current.flyTo({
         center: [-2.5, 54.0], // Centered on UK
@@ -1228,9 +1347,38 @@ const MapComponent: React.FC<MapComponentProps> = ({
     });
   }, [userLocation, isMapInitialized, discoveredLocations, onLocationDiscovered]);
 
+  // Update map style when dark mode changes
+  useEffect(() => {
+    if (map.current && isMapInitialized) {
+      map.current.setStyle(isDarkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11');
+      
+      // Need to wait for style to load before reapplying custom styles
+      map.current.once('style.load', () => {
+        if (!map.current) return;
+        applyFantasyMapStyle(map.current, isDarkMode);
+        addAdministrativeBoundaries(map.current);
+      });
+    }
+  }, [isDarkMode, isMapInitialized]);
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-lorequest-gold/30">
       <div ref={mapContainer} className="map-container" />
+      
+      {/* Dark mode toggle */}
+      <div className="absolute top-3 right-3 z-10">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onToggleDarkMode}
+          className={`p-2 rounded-full ${isDarkMode 
+            ? 'bg-lorequest-dark border-lorequest-gold/50 text-lorequest-gold'
+            : 'bg-white/70 backdrop-blur-sm border-gray-300 text-gray-700'}`}
+        >
+          {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+          <span className="sr-only">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+        </Button>
+      </div>
       
       {/* Fantasy-themed fog of war overlay */}
       {isMapInitialized && (
@@ -1246,9 +1394,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
                 background: 'transparent',
-                boxShadow: '0 0 0 100vmax rgba(13, 17, 23, 0.6)',
+                boxShadow: `0 0 0 100vmax ${isDarkMode ? 'rgba(13, 17, 23, 0.6)' : 'rgba(245, 233, 201, 0.4)'}`,
                 clipPath: 'circle(50%)',
-                border: '2px solid rgba(212, 175, 55, 0.3)'
+                border: `2px solid ${isDarkMode ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.5)'}`
               }}
             />
           ))}
@@ -1256,10 +1404,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
       )}
       
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 bg-lorequest-dark/80 backdrop-blur-sm p-2 rounded border border-lorequest-gold/50 text-xs">
-        <div className="flex items-center gap-2 text-lorequest-gold">
-          <Map size={14} />
-          <span>United Kingdom & Ireland</span>
+      <div className={`absolute bottom-3 left-3 ${isDarkMode 
+        ? 'bg-lorequest-dark/80' 
+        : 'bg-white/80'} backdrop-blur-sm p-2 rounded border ${isDarkMode 
+        ? 'border-lorequest-gold/50' 
+        : 'border-lorequest-gold/30'} text-xs`}>
+        <div className={`flex items-center gap-2 ${isDarkMode ? 'text-lorequest-gold' : 'text-gray-700'}`}>
+          <MapPin size={14} />
+          <span>Lore Quest</span>
         </div>
       </div>
     </div>

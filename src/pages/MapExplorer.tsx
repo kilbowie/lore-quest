@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -7,7 +8,7 @@ import DiscoveredLocationItem from '../components/DiscoveredLocationItem';
 import { getCurrentPosition, watchPosition, clearPositionWatch } from '../utils/geoUtils';
 import { loadDiscoveredLocations, addDiscoveredLocation } from '../utils/storageUtils';
 import { Button } from '@/components/ui/button';
-import { Compass, Map as MapIcon, Scroll, Info } from 'lucide-react';
+import { Compass, Scroll, Info } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 // New imports for enhanced features
@@ -30,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { addExperience } from '../utils/xpUtils';
 
 const API_KEY_STORAGE_KEY = 'mapbox_api_key';
+const DARK_MODE_STORAGE_KEY = 'lorequest_dark_mode';
 
 const MapExplorerContent: React.FC = () => {
   const { isAuthenticated, user, updateCurrentUser } = useAuth();
@@ -42,6 +44,7 @@ const MapExplorerContent: React.FC = () => {
   const [isDashboardOpen, setIsDashboardOpen] = useState<boolean>(false);
   const [allLocations, setAllLocations] = useState<Location[]>([]);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   
   // Total number of locations (updated to include Ireland)
   const totalLocations = 90; // Updated to include all 76 UK locations plus 14 Irish locations
@@ -78,7 +81,7 @@ const MapExplorerContent: React.FC = () => {
     return acc;
   }, {} as Record<string, Location[]>);
   
-  // Load discovered locations and API key on mount
+  // Load discovered locations, API key, and dark mode preference on mount
   useEffect(() => {
     const savedLocations = loadDiscoveredLocations();
     setDiscoveredLocations(savedLocations);
@@ -86,6 +89,11 @@ const MapExplorerContent: React.FC = () => {
     const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
     if (savedApiKey) {
       setMapboxApiKey(savedApiKey);
+    }
+    
+    const darkModePreference = localStorage.getItem(DARK_MODE_STORAGE_KEY);
+    if (darkModePreference) {
+      setIsDarkMode(darkModePreference === 'true');
     }
     
     setIsLoading(false);
@@ -176,6 +184,13 @@ const MapExplorerContent: React.FC = () => {
     if (user && !user.tutorialCompleted) {
       setShowTutorial(true);
     }
+  };
+  
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    localStorage.setItem(DARK_MODE_STORAGE_KEY, newDarkMode.toString());
   };
   
   // Handle location discovery
@@ -309,14 +324,39 @@ const MapExplorerContent: React.FC = () => {
   // If user is not authenticated, show login/signup form
   if (!isAuthenticated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
+      <div className={`h-screen flex items-center justify-center ${isDarkMode 
+        ? 'bg-lorequest-dark bg-[url(\'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==\')]'
+        : 'bg-parchment'} p-4`}>
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
+            {/* New logo and title */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/d8f21290-6154-4d2a-9768-6e62201ee8dd.png" 
+                alt="Lore Quest Logo" 
+                className="w-20 h-20"
+              />
+            </div>
             <h1 className="text-4xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>
             <div className="fantasy-divider mb-6"></div>
-            <p className="text-lorequest-parchment">Create an account or sign in to begin your adventure</p>
+            <p className={`${isDarkMode ? 'text-lorequest-parchment' : 'text-gray-700'}`}>
+              Create an account or sign in to begin your adventure
+            </p>
           </div>
           <AuthForms />
+          
+          {/* Dark mode toggle for login screen */}
+          <div className="mt-8 text-center">
+            <button 
+              onClick={toggleDarkMode}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${isDarkMode 
+                ? 'bg-lorequest-dark/50 text-lorequest-gold border border-lorequest-gold/30' 
+                : 'bg-white/50 text-gray-700 border border-gray-300'}`}
+            >
+              {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -325,27 +365,62 @@ const MapExplorerContent: React.FC = () => {
   // If no API key is set, show the input form with fantasy styling
   if (!mapboxApiKey) {
     return (
-      <div className="h-screen flex items-center justify-center bg-lorequest-dark bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==')] p-4">
-        <div className="max-w-md w-full p-6 bg-lorequest-dark/90 backdrop-blur-md border border-lorequest-gold/30 rounded-lg shadow-2xl">
+      <div className={`h-screen flex items-center justify-center ${isDarkMode 
+        ? 'bg-lorequest-dark bg-[url(\'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48cGF0aCBkPSJNMTguNiAzMGgzLjJ2MmgtMy4yek0yMiAxM2EyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6bTAgMTZhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzJhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMTQtMzBhMiAyIDAgMSAwIDAtNCAyIDIgMCAwIDAgMCA0em0wIDE2YTIgMiAwIDEgMCAwLTQgMiAyIDAgMCAwIDAgNHptMCAxNmEyIDIgMCAxIDAgMC00IDIgMiAwIDAgMCAwIDR6IiBmaWxsPSJyZ2JhKDIxMiwxNzUsNTUsMC4xKSIvPjwvc3ZnPg==\')]'
+        : 'bg-parchment'} p-4`}>
+        <div className={`max-w-md w-full p-6 ${isDarkMode 
+          ? 'bg-lorequest-dark/90 backdrop-blur-md border border-lorequest-gold/30' 
+          : 'bg-white/90 backdrop-blur-md border border-lorequest-gold/20'} rounded-lg shadow-2xl`}>
           <div className="text-center mb-6">
+            {/* New logo and title */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/d8f21290-6154-4d2a-9768-6e62201ee8dd.png" 
+                alt="Lore Quest Logo" 
+                className="w-20 h-20"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-lorequest-gold mb-2">LORE QUEST</h1>
             <div className="fantasy-divider mb-4"></div>
-            <p className="text-lorequest-parchment">Welcome back, {user.name}! Begin your exploration of the realm</p>
+            <p className={`${isDarkMode ? 'text-lorequest-parchment' : 'text-gray-700'}`}>
+              Welcome back, {user.name}! Begin your exploration of the realm
+            </p>
           </div>
           <ApiKeyInput onSubmit={handleApiKeySubmit} />
+          
+          {/* Dark mode toggle for API key screen */}
+          <div className="mt-8 text-center">
+            <button 
+              onClick={toggleDarkMode}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${isDarkMode 
+                ? 'bg-lorequest-dark/50 text-lorequest-gold border border-lorequest-gold/30' 
+                : 'bg-white/50 text-gray-700 border border-gray-300'}`}
+            >
+              {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
+              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-lorequest-dark">
-      {/* Header with fantasy styling */}
-      <header className="flex items-center justify-between p-4 bg-lorequest-dark/80 backdrop-blur-sm z-10 border-b border-lorequest-gold/30">
-        <h1 className="text-2xl font-bold flex items-center gap-2 text-lorequest-gold">
-          <MapIcon className="text-lorequest-gold" size={24} />
-          LORE QUEST UK & IRELAND
-        </h1>
+    <div className={`h-screen flex flex-col overflow-hidden ${isDarkMode 
+      ? 'bg-lorequest-dark' 
+      : 'bg-parchment'}`}>
+      {/* Header with updated logo and styling */}
+      <header className={`flex items-center justify-between p-4 ${isDarkMode 
+        ? 'bg-lorequest-dark/80 backdrop-blur-sm border-b border-lorequest-gold/30' 
+        : 'bg-white/80 backdrop-blur-sm border-b border-lorequest-gold/20'} z-10`}>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/lovable-uploads/d8f21290-6154-4d2a-9768-6e62201ee8dd.png" 
+            alt="Lore Quest Logo" 
+            className="w-8 h-8"
+          />
+          <h1 className="text-2xl font-bold text-lorequest-gold">LORE QUEST</h1>
+        </div>
         
         <div className="flex items-center gap-3">
           <TooltipProvider>
@@ -355,7 +430,9 @@ const MapExplorerContent: React.FC = () => {
                   variant={isTracking ? "destructive" : "default"}
                   onClick={toggleTracking}
                   size="sm"
-                  className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
+                  className={isTracking 
+                    ? "bg-red-700 hover:bg-red-800" 
+                    : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
                 >
                   <Compass className="mr-1" size={16} />
                   {isTracking ? 'End Quest' : 'Begin Quest'}
@@ -384,11 +461,15 @@ const MapExplorerContent: React.FC = () => {
             discoveredLocations={discoveredLocations}
             onLocationDiscovered={handleLocationDiscovered}
             apiKey={mapboxApiKey}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
           />
         </div>
         
         {/* Sidebar with fantasy styling */}
-        <div className="w-72 bg-lorequest-dark/80 backdrop-blur-md border-l border-lorequest-gold/30 overflow-y-auto p-4 flex flex-col gap-4">
+        <div className={`w-72 ${isDarkMode 
+          ? 'bg-lorequest-dark/80 backdrop-blur-md border-l border-lorequest-gold/30' 
+          : 'bg-white/80 backdrop-blur-md border-l border-lorequest-gold/20'} overflow-y-auto p-4 flex flex-col gap-4`}>
           {/* Stats panel */}
           <ExplorationStats stats={stats} />
           
@@ -398,7 +479,7 @@ const MapExplorerContent: React.FC = () => {
           {/* Discovered locations by realm */}
           <div className="flex-1">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold text-lorequest-gold flex items-center gap-2">
+              <h2 className={`text-lg font-bold ${isDarkMode ? 'text-lorequest-gold' : 'text-lorequest-gold'} flex items-center gap-2`}>
                 <Scroll size={18} />
                 Discovered Territories
               </h2>
@@ -421,8 +502,10 @@ const MapExplorerContent: React.FC = () => {
             </div>
             
             {discoveredLocations.length === 0 ? (
-              <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
-                <p className="text-sm text-lorequest-parchment">
+              <div className={`${isDarkMode 
+                ? 'bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30' 
+                : 'bg-white/50 border border-dashed border-lorequest-gold/20'} rounded-lg p-4 text-center`}>
+                <p className={`text-sm ${isDarkMode ? 'text-lorequest-parchment' : 'text-gray-700'}`}>
                   No territories discovered yet. Begin your journey to uncover the mysteries of the United Kingdom and Ireland!
                 </p>
               </div>
@@ -430,7 +513,9 @@ const MapExplorerContent: React.FC = () => {
               <div className="space-y-4">
                 {Object.entries(locationsByRealm).map(([realm, locations]) => (
                   <div key={realm} className="space-y-2">
-                    <h3 className="text-sm text-lorequest-gold font-medium border-b border-lorequest-gold/20 pb-1">
+                    <h3 className={`text-sm ${isDarkMode 
+                      ? 'text-lorequest-gold border-b border-lorequest-gold/20' 
+                      : 'text-lorequest-gold border-b border-lorequest-gold/20'} font-medium pb-1`}>
                       Realm of {realm}
                     </h3>
                     <div className="grid gap-2">
@@ -449,8 +534,10 @@ const MapExplorerContent: React.FC = () => {
           </div>
           
           {/* Help text with fantasy styling */}
-          <div className="text-xs text-lorequest-muted mt-auto pt-4 border-t border-lorequest-gold/20">
-            <p className="mb-2 text-lorequest-gold"><strong>How to Quest:</strong></p>
+          <div className={`text-xs ${isDarkMode 
+            ? 'text-lorequest-muted border-t border-lorequest-gold/20' 
+            : 'text-gray-500 border-t border-lorequest-gold/20'} mt-auto pt-4`}>
+            <p className={`mb-2 ${isDarkMode ? 'text-lorequest-gold' : 'text-lorequest-gold'}`}><strong>How to Quest:</strong></p>
             <ul className="space-y-1 list-disc pl-4">
               <li>Venture forth in the UK and Ireland to discover new territories</li>
               <li>Each country is a Realm containing mystical Territories</li>
@@ -458,7 +545,9 @@ const MapExplorerContent: React.FC = () => {
               <li>Complete your map to become a legendary explorer</li>
             </ul>
             <div className="fantasy-divider my-3"></div>
-            <p className="text-center text-lorequest-gold/60 text-[10px]">REAL-WORLD ADVENTURES. LEGENDARY REWARDS.</p>
+            <p className={`text-center ${isDarkMode 
+              ? 'text-lorequest-gold/60' 
+              : 'text-lorequest-gold/70'} text-[10px]`}>REAL-WORLD ADVENTURES. LEGENDARY REWARDS.</p>
           </div>
         </div>
       </div>

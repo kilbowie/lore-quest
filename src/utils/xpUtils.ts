@@ -1,4 +1,8 @@
 
+import { User, ItemType, EquipmentStats, InventoryItem, EquippableItem, EquipmentSlot, AttackType, COMBAT_EFFECTIVENESS, COMBAT_CONSTANTS, PlayerClass, QUEST_TYPES, LEVEL_CONSTANTS, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS } from '../types';
+import { toast } from "@/components/ui/sonner";
+import { updateUser } from './authUtils';
+
 // Update the addItemToInventory function to support equippable items
 export const addItemToInventory = (
   user: User,
@@ -263,6 +267,68 @@ export const calculateDamage = (
   return { damage, isCritical, isWeak };
 };
 
+// Function to initialize user stats
+export const initializeUserStats = (user: User): User => {
+  if (!user.stats) {
+    user.stats = {
+      strength: 1,
+      intelligence: 1,
+      dexterity: 1,
+      distanceTravelled: 0,
+      locationsDiscovered: 0,
+      totalXpEarned: 0,
+      questXpEarned: 0,
+      walkingXpEarned: 0,
+      totalGoldEarned: 0,
+      questGoldEarned: 0,
+      questsCompleted: 0,
+      achievementsUnlocked: 0,
+      dailyQuestsCompleted: 0,
+      weeklyQuestsCompleted: 0,
+      monthlyQuestsCompleted: 0
+    };
+  }
+  
+  return recalculatePlayerStats(user);
+};
+
+// Function to recalculate player stats
+export const recalculatePlayerStats = (user: User): User => {
+  const updatedUser = { ...user };
+  
+  // Initialize stats if they don't exist
+  if (!updatedUser.stats) {
+    updatedUser.stats = {
+      strength: 1,
+      intelligence: 1,
+      dexterity: 1,
+      distanceTravelled: 0,
+      locationsDiscovered: 0,
+      totalXpEarned: 0,
+      questXpEarned: 0,
+      walkingXpEarned: 0,
+      totalGoldEarned: 0,
+      questGoldEarned: 0,
+      questsCompleted: 0,
+      achievementsUnlocked: 0,
+      dailyQuestsCompleted: 0,
+      weeklyQuestsCompleted: 0,
+      monthlyQuestsCompleted: 0
+    };
+  }
+  
+  // Calculate max health based on strength
+  updatedUser.maxHealth = updatedUser.stats.strength * STAT_MULTIPLIERS.HEALTH_PER_STRENGTH;
+  
+  // Calculate max mana based on intelligence
+  updatedUser.maxMana = updatedUser.stats.intelligence * STAT_MULTIPLIERS.MANA_PER_INTELLIGENCE;
+  
+  // Calculate max stamina based on dexterity
+  updatedUser.maxStamina = updatedUser.stats.dexterity * STAT_MULTIPLIERS.STAMINA_PER_DEXTERITY;
+  
+  return updatedUser;
+};
+
 // Function to handle level up and add stat point to primary attribute
 export const handleLevelUp = (user: User, oldLevel: number): User => {
   const updatedUser = { ...user };
@@ -394,7 +460,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
     let questsUpdated = false;
     
     // Check for matching quests and update progress
-    const updateQuestProgress = (quest: Quest) => {
+    const updateQuestProgress = (quest: any) => {
       if (quest.completed) return quest;
       
       // Matching activity type for walking quests
@@ -421,7 +487,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
             updatedUser.experience += quest.xpReward;
             
             if (!updatedUser.stats) {
-              initializeUserStats(updatedUser);
+              updatedUser = initializeUserStats(updatedUser);
             }
             
             updatedUser.stats.totalXpEarned += quest.xpReward;
@@ -436,7 +502,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
             updatedUser.gold = (updatedUser.gold || 0) + quest.goldReward;
             
             if (!updatedUser.stats) {
-              initializeUserStats(updatedUser);
+              updatedUser = initializeUserStats(updatedUser);
             }
             
             updatedUser.stats.totalGoldEarned += quest.goldReward;
@@ -454,7 +520,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
               // Complete starter quest with armor set reward
               updatedUser = completeStarterQuest(updatedUser, updatedUser.playerClass);
             } else {
-              // Fix the type issue by explicitly typing it as a union type
+              // Cast the type to the correct union type
               const reward = { 
                 type: quest.itemReward.type as "potion" | "elixir" | "other" | "weapon" | "armor",
                 name: quest.itemReward.name, 
@@ -464,7 +530,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
               // Make sure to pass the correctly typed value
               addItemToInventory(
                 updatedUser,
-                reward.type,
+                reward.type as ItemType,
                 reward.name,
                 `Reward from ${quest.name} quest`,
                 reward.quantity
@@ -478,7 +544,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
           
           // Update quest completion stats
           if (!updatedUser.stats) {
-            initializeUserStats(updatedUser);
+            updatedUser = initializeUserStats(updatedUser);
           }
           
           updatedUser.stats.questsCompleted++;
@@ -523,7 +589,7 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
 
 // Update addExperience function to handle automatic stat increases on level up
 export const addExperience = (user: User, xpAmount: number, source?: string): User => {
-  const updatedUser = { ...user };
+  let updatedUser = { ...user };
   const oldLevel = updatedUser.level;
   
   // Add XP
@@ -531,7 +597,7 @@ export const addExperience = (user: User, xpAmount: number, source?: string): Us
   
   // Update stats
   if (!updatedUser.stats) {
-    initializeUserStats(updatedUser);
+    updatedUser = initializeUserStats(updatedUser);
   }
   
   updatedUser.stats.totalXpEarned += xpAmount;
@@ -575,6 +641,31 @@ export const addExperience = (user: User, xpAmount: number, source?: string): Us
   return updatedUser;
 };
 
+// Calculate XP required for level
+export const calculateXpForLevel = (level: number): number => {
+  return Math.floor(LEVEL_CONSTANTS.BASE_XP * Math.pow(LEVEL_CONSTANTS.SCALING_FACTOR, level - 1));
+};
+
+// Calculate level progress percentage
+export const calculateLevelProgress = (user: User): number => {
+  if (user.level >= LEVEL_CONSTANTS.MAX_LEVEL) return 100;
+  
+  const currentLevelXp = calculateXpForLevel(user.level);
+  const nextLevelXp = calculateXpForLevel(user.level + 1);
+  const xpForNextLevel = nextLevelXp - currentLevelXp;
+  const progress = (user.experience - currentLevelXp) / xpForNextLevel;
+  
+  return Math.min(100, Math.max(0, Math.round(progress * 100)));
+};
+
+// Calculate XP to next level
+export const xpToNextLevel = (user: User): number => {
+  if (user.level >= LEVEL_CONSTANTS.MAX_LEVEL) return 0;
+  
+  const nextLevelXp = calculateXpForLevel(user.level + 1);
+  return Math.max(0, nextLevelXp - user.experience);
+};
+
 // Add verification quest to user
 export const addVerificationQuest = (user: User): User => {
   const updatedUser = { ...user };
@@ -582,7 +673,7 @@ export const addVerificationQuest = (user: User): User => {
   // Check if user already has this achievement
   if (!updatedUser.achievements.some(a => a.achievementId === 'email-verification')) {
     // Add verification achievement
-    const verificationAchievement: UserAchievement = {
+    const verificationAchievement = {
       achievementId: 'email-verification',
       completed: false,
       progress: 0,
@@ -619,4 +710,148 @@ export const addWalkingDistance = (user: User, distanceKm: number): User => {
   updateUser(updatedUser);
   
   return updatedUser;
+};
+
+// Add completion for verification quest
+export const completeVerificationQuest = (user: User): User => {
+  // Find the verification achievement
+  const achievement = user.achievements.find(a => a.achievementId === 'email-verification');
+  
+  if (achievement && !achievement.completed) {
+    // Mark as completed
+    achievement.completed = true;
+    achievement.progress = 1;
+    achievement.completedAt = new Date();
+    
+    // Add XP (100 XP for verification)
+    user.experience += 100;
+    
+    // Add gold (50 gold for verification)
+    user.gold = (user.gold || 0) + 50;
+    
+    // Update stats if they exist
+    if (user.stats) {
+      user.stats.totalXpEarned += 100;
+      user.stats.questXpEarned += 100;
+      user.stats.totalGoldEarned += 50;
+      user.stats.questGoldEarned += 50;
+      user.stats.questsCompleted += 1;
+    }
+    
+    toast.success('Email Verified!', {
+      description: 'You earned 100 XP and 50 gold.'
+    });
+  }
+  
+  return user;
+};
+
+// Get walking data
+export const getUserWalkingData = (userId: string): { totalDistanceKm: number; earnedXP: number } => {
+  try {
+    const key = `lorequest_walking_${userId}`;
+    const stored = localStorage.getItem(key);
+    
+    if (stored) {
+      const data = JSON.parse(stored);
+      return {
+        totalDistanceKm: data.totalDistanceKm || 0,
+        earnedXP: data.earnedXP || 0
+      };
+    }
+  } catch (error) {
+    console.error('Error getting walking data:', error);
+  }
+  
+  return { totalDistanceKm: 0, earnedXP: 0 };
+};
+
+// Update user stats
+export const updateUserStats = (user: User, statsUpdate: Partial<User['stats']>): User => {
+  const updatedUser = { ...user };
+  
+  if (!updatedUser.stats) {
+    updatedUser.stats = {
+      strength: 1,
+      intelligence: 1,
+      dexterity: 1,
+      distanceTravelled: 0,
+      locationsDiscovered: 0,
+      totalXpEarned: 0,
+      questXpEarned: 0,
+      walkingXpEarned: 0,
+      totalGoldEarned: 0,
+      questGoldEarned: 0,
+      questsCompleted: 0,
+      achievementsUnlocked: 0,
+      dailyQuestsCompleted: 0,
+      weeklyQuestsCompleted: 0,
+      monthlyQuestsCompleted: 0
+    };
+  }
+  
+  // Update each stat that was provided
+  Object.entries(statsUpdate).forEach(([key, value]) => {
+    if (value !== undefined && key in updatedUser.stats) {
+      (updatedUser.stats as any)[key] = value;
+    }
+  });
+  
+  return updatedUser;
+};
+
+// Function to generate time-based quests (daily, weekly, monthly)
+export const generateTimeBasedQuests = (user: User): User => {
+  // Implementation to be added
+  return user;
+};
+
+// Get time-based quests
+export const getTimeBasedQuests = (userId: string) => {
+  // Implementation to be added
+  return { daily: [], weekly: [], monthly: [] };
+};
+
+// Function for health/mana/stamina regeneration checks
+export const checkRegeneration = (user: User): User => {
+  // Implementation to be added
+  return user;
+};
+
+// Function to spend gold
+export const spendGold = (user: User, amount: number, reason?: string): User => {
+  const updatedUser = { ...user };
+  
+  if (updatedUser.gold < amount) {
+    toast.error('Not enough gold!');
+    return updatedUser;
+  }
+  
+  updatedUser.gold -= amount;
+  
+  if (reason) {
+    toast.success(`Spent ${amount} gold`, {
+      description: reason
+    });
+  }
+  
+  return updatedUser;
+};
+
+// Function to upgrade stat with rune
+export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence' | 'dexterity', runeId: string): User => {
+  // Implementation to be added
+  return user;
+};
+
+// Function to track achievement
+export const trackAchievement = (user: User, achievementId: string): User => {
+  // Implementation to be added
+  return user;
+};
+
+// Function to untrack achievement
+export const untrackAchievement = (user: User, achievementId: string): User => {
+  // Implementation to be added
+  return user;
 };

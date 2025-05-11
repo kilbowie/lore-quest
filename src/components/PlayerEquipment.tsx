@@ -2,7 +2,7 @@
 import React from 'react';
 import { User, EquipmentSlot, InventoryItem, EquippableItem } from '../types';
 import { equipItem, unequipItem } from '../utils/xpUtils';
-import { Shield, Sword, Staff, Activity, Trash2, Lock } from 'lucide-react';
+import { Shield, Sword, Wand, Activity, Trash2, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +27,7 @@ const PlayerEquipment: React.FC<PlayerEquipmentProps> = ({ user, onUserUpdate, s
   
   const getSlotIcon = (slot: EquipmentSlot) => {
     switch (slot) {
-      case 'mainWeapon': return user.playerClass === 'Knight' ? <Sword size={18} /> : user.playerClass === 'Wizard' ? <Staff size={18} /> : <Activity size={18} />;
+      case 'mainWeapon': return user.playerClass === 'Knight' ? <Sword size={18} /> : user.playerClass === 'Wizard' ? <Wand size={18} /> : <Activity size={18} />;
       case 'secondaryWeapon': return <Shield size={18} />;
       case 'head': return '🪖';
       case 'body': return '👕';

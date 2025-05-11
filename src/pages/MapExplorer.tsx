@@ -8,7 +8,7 @@ import DiscoveredLocationItem from '../components/DiscoveredLocationItem';
 import { getCurrentPosition, watchPosition, clearPositionWatch } from '../utils/geoUtils';
 import { loadDiscoveredLocations, addDiscoveredLocation } from '../utils/storageUtils';
 import { Button } from '@/components/ui/button';
-import { Compass, Scroll, Info } from 'lucide-react';
+import { Compass, Scroll, Info, Sun, Moon } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 // New imports for enhanced features

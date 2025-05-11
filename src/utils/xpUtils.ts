@@ -40,15 +40,15 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable: true as const, // This ensures TypeScript treats it as literal 'true'
+        isEquippable: true,
         equipmentStats
       };
       
       user.inventory.push(equippableItem);
       item = equippableItem;
     } else {
-      // Create a regular InventoryItem
-      item = {
+      // Create a regular inventory item with explicit false for isEquippable
+      const regularItem: InventoryItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         type,
         name,
@@ -57,10 +57,12 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable,
+        isEquippable: isEquippable || false,
         equipmentStats
       };
-      user.inventory.push(item);
+      
+      user.inventory.push(regularItem);
+      item = regularItem;
     }
   }
   

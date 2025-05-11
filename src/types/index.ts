@@ -43,12 +43,14 @@ export interface User {
   achievements: UserAchievement[];
   activeQuests: string[]; // IDs of quests being tracked
   completedQuests: string[]; // IDs of completed quests
+  emailVerified?: boolean;
+  tutorialCompleted?: boolean;
   createdAt: Date;
 }
 
 export interface InventoryItem {
   id: string;
-  type: 'rune' | 'map' | 'compass' | 'other';
+  type: 'rune' | 'map' | 'compass' | 'weapon' | 'other';
   name: string;
   description?: string;
   quantity: number;
@@ -56,7 +58,7 @@ export interface InventoryItem {
 
 export interface Achievement {
   id: string;
-  type: 'territory' | 'realm' | 'continent' | 'meta';
+  type: 'territory' | 'realm' | 'continent' | 'meta' | 'tutorial';
   name: string;
   description: string;
   targetId?: string; // ID of the location, realm or continent
@@ -73,11 +75,18 @@ export interface UserAchievement {
   isTracked: boolean;
 }
 
+export interface TutorialStep {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
 export interface Quest {
   id: string;
   name: string;
   description: string;
-  type: 'discovery' | 'collection' | 'exploration';
+  type: 'discovery' | 'collection' | 'exploration' | 'tutorial';
   targetId?: string;
   targetCount?: number;
   xpReward: number;
@@ -96,4 +105,27 @@ export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   isLoading: boolean;
+}
+
+// New interfaces for tutorial quest
+export interface TutorialQuest {
+  id: string;
+  title: string;
+  description: string;
+  steps: TutorialStep[];
+  xpReward: number;
+  itemReward?: InventoryItem;
+}
+
+// Walking data
+export interface WalkingData {
+  userId: string;
+  lastPosition?: {
+    latitude: number;
+    longitude: number;
+    timestamp: number;
+  };
+  totalDistanceKm: number;
+  earnedXP: number;
+  lastXpAwardDate: string;
 }

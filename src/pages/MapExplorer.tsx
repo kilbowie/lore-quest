@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -7,7 +8,7 @@ import DiscoveredLocationItem from '../components/DiscoveredLocationItem';
 import { getCurrentPosition, watchPosition, clearPositionWatch } from '../utils/geoUtils';
 import { loadDiscoveredLocations, addDiscoveredLocation } from '../utils/storageUtils';
 import { Button } from '@/components/ui/button';
-import { Compass, Map as MapIcon, Scroll } from 'lucide-react';
+import { Compass, Map as MapIcon, Scroll, Info } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 // New imports for enhanced features
@@ -17,6 +18,10 @@ import UserProfile from '../components/UserProfile';
 import UserDashboard from '../components/UserDashboard';
 import { updateAchievementsOnDiscovery } from '../utils/achievementsUtils';
 import { initializeAchievements } from '../utils/achievementsUtils';
+import TutorialQuest from '../components/TutorialQuest';
+import WalkingTracker from '../components/WalkingTracker';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { addExperience } from '../utils/xpUtils';
 
 const API_KEY_STORAGE_KEY = 'mapbox_api_key';
 
@@ -30,6 +35,7 @@ const MapExplorerContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDashboardOpen, setIsDashboardOpen] = useState<boolean>(false);
   const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [showTutorial, setShowTutorial] = useState<boolean>(false);
   
   // Total number of locations (updated to include Ireland)
   const totalLocations = 90; // Updated to include all 76 UK locations plus 14 Irish locations
@@ -90,6 +96,18 @@ const MapExplorerContent: React.FC = () => {
     });
   }, []);
   
+  // Show tutorial for new users
+  useEffect(() => {
+    if (isAuthenticated && user && !user.tutorialCompleted) {
+      // Only show tutorial after a short delay to allow the UI to render
+      const timer = setTimeout(() => {
+        setShowTutorial(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user]);
+  
   // Update user's discovered locations when they log in
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -126,6 +144,20 @@ const MapExplorerContent: React.FC = () => {
     }
   }, [isAuthenticated, user, discoveredLocations, allLocations]);
   
+  // Handle tutorial completion
+  const handleTutorialComplete = () => {
+    if (!user) return;
+    
+    setShowTutorial(false);
+    
+    // Start tracking location after tutorial completion
+    if (mapboxApiKey) {
+      startTracking();
+    }
+    
+    toast.success('Tutorial completed! Begin your journey!');
+  };
+  
   // Handle API key submission
   const handleApiKeySubmit = (apiKey: string) => {
     setMapboxApiKey(apiKey);
@@ -133,6 +165,11 @@ const MapExplorerContent: React.FC = () => {
     
     // Start tracking location after API key is set
     startTracking();
+    
+    // Show tutorial for new users
+    if (user && !user.tutorialCompleted) {
+      setShowTutorial(true);
+    }
   };
   
   // Handle location discovery
@@ -152,6 +189,9 @@ const MapExplorerContent: React.FC = () => {
           location,
           allLocations
         );
+        
+        // Add extra XP for discovering a new location
+        addExperience(updatedUser, 50, `Discovered ${location.name}`);
         
         updateCurrentUser(updatedUser);
       }
@@ -302,15 +342,28 @@ const MapExplorerContent: React.FC = () => {
         </h1>
         
         <div className="flex items-center gap-3">
-          <Button
-            variant={isTracking ? "destructive" : "default"}
-            onClick={toggleTracking}
-            size="sm"
-            className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
-          >
-            <Compass className="mr-1" size={16} />
-            {isTracking ? 'End Quest' : 'Begin Quest'}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isTracking ? "destructive" : "default"}
+                  onClick={toggleTracking}
+                  size="sm"
+                  className={isTracking ? "bg-red-700 hover:bg-red-800" : "bg-lorequest-gold text-lorequest-dark hover:bg-lorequest-highlight"}
+                >
+                  <Compass className="mr-1" size={16} />
+                  {isTracking ? 'End Quest' : 'Begin Quest'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs max-w-xs">
+                  {isTracking 
+                    ? "Click to stop tracking your location" 
+                    : "Click to start tracking your location and discover territories"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           <UserProfile onToggleDashboard={toggleDashboard} />
         </div>
@@ -333,12 +386,33 @@ const MapExplorerContent: React.FC = () => {
           {/* Stats panel */}
           <ExplorationStats stats={stats} />
           
+          {/* Walking tracker */}
+          <WalkingTracker />
+          
           {/* Discovered locations by realm */}
           <div className="flex-1">
-            <h2 className="text-lg font-bold mb-3 text-lorequest-gold flex items-center gap-2">
-              <Scroll size={18} />
-              Discovered Territories
-            </h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-lorequest-gold flex items-center gap-2">
+                <Scroll size={18} />
+                Discovered Territories
+              </h2>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-lorequest-gold hover:text-lorequest-highlight">
+                      <Info size={16} />
+                      <span className="sr-only">Info</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    <p className="text-xs">
+                      Territories are discovered when you venture within 0.5 miles of their location. Click on a territory to center the map on it.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             
             {discoveredLocations.length === 0 ? (
               <div className="bg-lorequest-dark/50 border border-dashed border-lorequest-gold/30 rounded-lg p-4 text-center">
@@ -385,6 +459,11 @@ const MapExplorerContent: React.FC = () => {
       
       {/* User Dashboard (when open) */}
       {isDashboardOpen && <UserDashboard onClose={toggleDashboard} />}
+      
+      {/* Tutorial Quest */}
+      {showTutorial && (
+        <TutorialQuest onComplete={handleTutorialComplete} />
+      )}
     </div>
   );
 };

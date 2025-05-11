@@ -1,3 +1,4 @@
+
 import { User, ItemType, EquipmentStats, InventoryItem, EquippableItem, EquipmentSlot, AttackType, COMBAT_EFFECTIVENESS, COMBAT_CONSTANTS, PlayerClass, QUEST_TYPES, LEVEL_CONSTANTS, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS, STARTER_QUEST_REWARDS } from '../types';
 import { toast } from "@/components/ui/sonner";
 import { updateUser } from './authUtils';
@@ -29,7 +30,7 @@ export const addItemToInventory = (
   } else {
     // Add new item, ensuring it matches the required type
     if (isEquippable && equipmentStats) {
-      // Create an EquippableItem with explicit type casting to ensure isEquippable is always true
+      // For equippable items, we need to ensure isEquippable is literal 'true'
       const equippableItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         type,
@@ -39,10 +40,11 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable: true as const, // Use const assertion to make TypeScript treat this as literal 'true'
+        isEquippable: true as const, // This ensures TypeScript treats it as literal 'true'
         equipmentStats
-      } as EquippableItem;
+      } as EquippableItem; // Type assertion to EquippableItem
       
+      user.inventory.push(equippableItem);
       item = equippableItem;
     } else {
       // Create a regular InventoryItem
@@ -58,8 +60,8 @@ export const addItemToInventory = (
         isEquippable,
         equipmentStats
       };
+      user.inventory.push(item);
     }
-    user.inventory.push(item);
   }
   
   return item;

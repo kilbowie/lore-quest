@@ -1,3 +1,4 @@
+
 import { 
   LEVEL_CONSTANTS, User, Achievement, UserAchievement, InventoryItem, 
   UserStats, STAT_MULTIPLIERS, PlayerClass, CLASS_DESCRIPTIONS, 
@@ -92,7 +93,7 @@ export const addExperience = (user: User, xpAmount: number, source?: string): Us
 
 // Add walking distance to user and award XP
 export const addWalkingDistance = (user: User, distanceKm: number): User => {
-  const updatedUser = { ...user };
+  let updatedUser = { ...user };
   
   // Initialize stats if they don't exist
   if (!updatedUser.stats) {
@@ -1012,7 +1013,7 @@ export const addVerificationQuest = (user: User): User => {
     // Add verification achievement
     const verificationAchievement: UserAchievement = {
       achievementId: 'email-verification',
-      isCompleted: false,
+      completed: false,
       progress: 0,
       isTracked: true,
       dateAwarded: null

@@ -29,8 +29,8 @@ export const addItemToInventory = (
   } else {
     // Add new item, ensuring it matches the required type
     if (isEquippable && equipmentStats) {
-      // Create an EquippableItem
-      const equippableItem: EquippableItem = {
+      // Create an EquippableItem with explicit type casting to ensure isEquippable is always true
+      const equippableItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         type,
         name,
@@ -39,9 +39,10 @@ export const addItemToInventory = (
         icon,
         useEffect,
         value,
-        isEquippable: true, // Must be true for EquippableItem
+        isEquippable: true as const, // Use const assertion to make TypeScript treat this as literal 'true'
         equipmentStats
-      };
+      } as EquippableItem;
+      
       item = equippableItem;
     } else {
       // Create a regular InventoryItem

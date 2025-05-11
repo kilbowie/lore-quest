@@ -48,7 +48,7 @@ const UserDashboard: React.FC<{
   
   // Calculate all the level-related values
   const levelProgress = calculateLevelProgress(user);
-  const xpNeeded = xpToNextLevel(user.level);
+  const xpNeeded = xpToNextLevel(user);
   const currentLevelXp = user.experience - calculateXpForLevel(user.level);
   const progressXp = Math.floor((levelProgress * xpNeeded) / 100);
   

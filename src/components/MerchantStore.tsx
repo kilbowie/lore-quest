@@ -32,7 +32,9 @@ const MerchantStore: React.FC<MerchantStoreProps> = ({ open, onOpenChange }) => 
     const quantity = quantities[item.id] || 1;
     const totalCost = item.goldCost * quantity;
     
-    const [updatedUser, success] = spendGold(user, totalCost, `Purchased ${quantity} ${item.name}(s)`);
+    const result = spendGold(user, totalCost, `Purchased ${quantity} ${item.name}(s)`);
+    const updatedUser = result;
+    const success = updatedUser !== user;
     
     if (success) {
       // Add item to inventory

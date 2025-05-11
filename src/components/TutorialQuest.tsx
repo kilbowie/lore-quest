@@ -10,12 +10,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Award, CheckCircle, ChevronRight } from 'lucide-react';
+import { Award, CheckCircle, ChevronRight, ChevronLeft, Shield, Wand, Walking } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { TutorialStep } from '../types';
-import { addExperience, addItemToInventory } from '../utils/xpUtils';
-import { completeTutorial } from '../utils/authUtils';
+import { TutorialStep, PlayerClass, CLASS_DESCRIPTIONS } from '../types';
+import { addExperience, addItemToInventory, updateUserStats } from '../utils/xpUtils';
+import { completeTutorial, setUserClass } from '../utils/authUtils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import WalkingTracker from './WalkingTracker';
 
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
@@ -23,6 +26,16 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     title: 'Welcome to Lore Quest',
     description: 'Begin your adventure across the UK & Ireland! This quest will help you learn the basics.',
     completed: false
+  },
+  {
+    id: 'class',
+    title: 'Choose Your Class',
+    description: 'Select a character class to begin your journey. Each class has different strengths and abilities.',
+    completed: false,
+    requirement: {
+      type: 'class',
+      value: 'any'
+    }
   },
   {
     id: 'map',
@@ -43,6 +56,16 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     completed: false
   },
   {
+    id: 'walking',
+    title: 'Walking to Earn XP',
+    description: 'Walk 1 kilometer to earn XP and complete quests. For this tutorial, you can use the simulator to track progress.',
+    completed: false,
+    requirement: {
+      type: 'walk',
+      value: 1 // 1 kilometer
+    }
+  },
+  {
     id: 'quests',
     title: 'Tracking Quests',
     description: 'You can track achievements as quests. They appear in your active quests list.',
@@ -51,6 +74,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 ];
 
 const TUTORIAL_XP_REWARD = 150; // Enough to reach level 2
+const TUTORIAL_GOLD_REWARD = 50; // Starting gold
 
 interface TutorialQuestProps {
   onComplete: () => void;
@@ -62,6 +86,8 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
   const [steps, setSteps] = useState<TutorialStep[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<PlayerClass | null>(null);
+  const [walkingDistance, setWalkingDistance] = useState(0);
   
   useEffect(() => {
     // Only show the tutorial for new users who haven't completed it
@@ -72,6 +98,23 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
   }, [user]);
   
   const handleNextStep = () => {
+    // Check if current step has a requirement
+    const currentStepData = steps[currentStep];
+    if (currentStepData.requirement) {
+      // Check class selection requirement
+      if (currentStepData.requirement.type === 'class' && !selectedClass) {
+        return; // Can't proceed without class selection
+      }
+      
+      // Check walking requirement
+      if (currentStepData.requirement.type === 'walk') {
+        const requiredDistance = Number(currentStepData.requirement.value);
+        if (walkingDistance < requiredDistance) {
+          return; // Can't proceed until walking requirement is met
+        }
+      }
+    }
+    
     if (currentStep < steps.length - 1) {
       const updatedSteps = [...steps];
       updatedSteps[currentStep].completed = true;
@@ -82,8 +125,22 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
     }
   };
   
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+  
+  const handleClassSelection = (playerClass: PlayerClass) => {
+    setSelectedClass(playerClass);
+  };
+  
+  const updateWalkingProgress = (distanceAdded: number) => {
+    setWalkingDistance(prev => prev + distanceAdded);
+  };
+  
   const completeTutorialQuest = () => {
-    if (!user) return;
+    if (!user || !selectedClass) return;
     
     // Mark all steps as completed
     const updatedSteps = steps.map(step => ({ ...step, completed: true }));
@@ -92,21 +149,37 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
     // Mark as completed
     setCompleted(true);
     
+    // Set user class
+    const updatedUser = setUserClass(user.id, selectedClass);
+    
     // Award XP to level up
-    const updatedUser = addExperience(user, TUTORIAL_XP_REWARD, 'Tutorial Completion');
+    const userWithXP = addExperience(updatedUser, TUTORIAL_XP_REWARD, 'Tutorial Completion');
+    
+    // Add gold
+    userWithXP.gold = (userWithXP.gold || 0) + TUTORIAL_GOLD_REWARD;
     
     // Add a weapon to the user's inventory
     addItemToInventory(
-      updatedUser,
+      userWithXP,
       'weapon',
       'Rusty Sword',
       'Your first weapon, earned from completing the tutorial quest',
-      1
+      1,
+      '🗡️'
     );
     
+    // Update stats
+    updateUserStats(userWithXP, {
+      questsCompleted: 1,
+      questXpEarned: TUTORIAL_XP_REWARD,
+      totalXpEarned: TUTORIAL_XP_REWARD,
+      questGoldEarned: TUTORIAL_GOLD_REWARD,
+      totalGoldEarned: TUTORIAL_GOLD_REWARD
+    });
+    
     // Mark tutorial as completed
-    completeTutorial(updatedUser.id);
-    updateCurrentUser({...updatedUser, tutorialCompleted: true});
+    completeTutorial(userWithXP.id);
+    updateCurrentUser({...userWithXP, tutorialCompleted: true});
     
     // Close the dialog after a delay to allow the user to see the completion message
     setTimeout(() => {
@@ -116,6 +189,109 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
   };
   
   const progress = Math.round((currentStep / (steps.length - 1)) * 100);
+  
+  const renderStepContent = () => {
+    const currentStepData = steps[currentStep];
+    
+    if (!currentStepData) return null;
+    
+    switch (currentStepData.id) {
+      case 'class':
+        return (
+          <div className="space-y-4">
+            <RadioGroup 
+              value={selectedClass || ""} 
+              onValueChange={(value) => handleClassSelection(value as PlayerClass)}
+              className="space-y-4"
+            >
+              <div className="bg-lorequest-gold/10 p-4 rounded-lg border border-lorequest-gold/30 cursor-pointer hover:bg-lorequest-gold/20 transition-colors">
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="Knight" id="knight" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="knight" className="flex items-center text-lorequest-gold font-semibold cursor-pointer">
+                      <Shield size={16} className="mr-2" /> Knight
+                    </Label>
+                    <p className="text-lorequest-parchment text-sm mt-1">
+                      {CLASS_DESCRIPTIONS.Knight.description}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-lorequest-parchment">
+                      <div>STR: {CLASS_DESCRIPTIONS.Knight.baseStats.strength}</div>
+                      <div>INT: {CLASS_DESCRIPTIONS.Knight.baseStats.intelligence}</div>
+                      <div>DEX: {CLASS_DESCRIPTIONS.Knight.baseStats.dexterity}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-lorequest-gold/10 p-4 rounded-lg border border-lorequest-gold/30 cursor-pointer hover:bg-lorequest-gold/20 transition-colors">
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="Wizard" id="wizard" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="wizard" className="flex items-center text-lorequest-gold font-semibold cursor-pointer">
+                      <Wand size={16} className="mr-2" /> Wizard
+                    </Label>
+                    <p className="text-lorequest-parchment text-sm mt-1">
+                      {CLASS_DESCRIPTIONS.Wizard.description}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-lorequest-parchment">
+                      <div>STR: {CLASS_DESCRIPTIONS.Wizard.baseStats.strength}</div>
+                      <div>INT: {CLASS_DESCRIPTIONS.Wizard.baseStats.intelligence}</div>
+                      <div>DEX: {CLASS_DESCRIPTIONS.Wizard.baseStats.dexterity}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-lorequest-gold/10 p-4 rounded-lg border border-lorequest-gold/30 cursor-pointer hover:bg-lorequest-gold/20 transition-colors">
+                <div className="flex items-start space-x-2">
+                  <RadioGroupItem value="Ranger" id="ranger" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="ranger" className="flex items-center text-lorequest-gold font-semibold cursor-pointer">
+                      <Walking size={16} className="mr-2" /> Ranger
+                    </Label>
+                    <p className="text-lorequest-parchment text-sm mt-1">
+                      {CLASS_DESCRIPTIONS.Ranger.description}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-lorequest-parchment">
+                      <div>STR: {CLASS_DESCRIPTIONS.Ranger.baseStats.strength}</div>
+                      <div>INT: {CLASS_DESCRIPTIONS.Ranger.baseStats.intelligence}</div>
+                      <div>DEX: {CLASS_DESCRIPTIONS.Ranger.baseStats.dexterity}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+        );
+      
+      case 'walking':
+        return (
+          <div className="space-y-4">
+            <WalkingTracker 
+              showDetails={true}
+              onWalkingProgress={updateWalkingProgress}
+              tutorialMode={true}
+              tutorialTarget={1.0}
+            />
+            <div className="text-center text-lorequest-parchment text-sm">
+              Walking progress: {walkingDistance.toFixed(2)} / 1.0 km
+            </div>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="bg-lorequest-gold/10 p-4 rounded-lg border border-lorequest-gold/30">
+            <h3 className="text-lg font-semibold text-lorequest-gold mb-1">
+              {currentStepData.title}
+            </h3>
+            <p className="text-lorequest-parchment text-sm">
+              {currentStepData.description}
+            </p>
+          </div>
+        );
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -148,21 +324,17 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
               </div>
               <h3 className="text-xl font-bold text-lorequest-gold">Tutorial Complete!</h3>
               <p className="text-lorequest-parchment">
-                You've earned {TUTORIAL_XP_REWARD} XP and a Rusty Sword for your inventory.
+                You've earned {TUTORIAL_XP_REWARD} XP, {TUTORIAL_GOLD_REWARD} Gold, and a Rusty Sword for your inventory.
+              </p>
+              <p className="text-lorequest-parchment text-sm">
+                Your class: <span className="text-lorequest-gold">{selectedClass}</span>
               </p>
             </div>
           ) : (
             <>
-              <div className="bg-lorequest-gold/10 p-4 rounded-lg border border-lorequest-gold/30">
-                <h3 className="text-lg font-semibold text-lorequest-gold mb-1">
-                  {steps[currentStep]?.title}
-                </h3>
-                <p className="text-lorequest-parchment text-sm">
-                  {steps[currentStep]?.description}
-                </p>
-              </div>
+              {renderStepContent()}
               
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-7 gap-2">
                 {steps.map((step, index) => (
                   <TooltipProvider key={step.id}>
                     <Tooltip>
@@ -188,20 +360,35 @@ const TutorialQuest: React.FC<TutorialQuestProps> = ({ onComplete }) => {
           )}
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="flex justify-between">
           {!completed && (
-            <Button 
-              onClick={handleNextStep}
-              className="bg-lorequest-gold hover:bg-lorequest-highlight text-lorequest-dark font-medium"
-            >
-              {currentStep < steps.length - 1 ? (
-                <>
-                  Next <ChevronRight className="w-4 h-4 ml-1" />
-                </>
-              ) : (
-                'Complete Tutorial'
-              )}
-            </Button>
+            <>
+              <Button 
+                onClick={handlePrevStep}
+                variant="outline"
+                disabled={currentStep === 0}
+                className="border-lorequest-gold/30 text-lorequest-parchment"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
+              
+              <Button 
+                onClick={handleNextStep}
+                className="bg-lorequest-gold hover:bg-lorequest-highlight text-lorequest-dark font-medium"
+                disabled={
+                  (steps[currentStep]?.requirement?.type === 'class' && !selectedClass) ||
+                  (steps[currentStep]?.requirement?.type === 'walk' && walkingDistance < 1)
+                }
+              >
+                {currentStep < steps.length - 1 ? (
+                  <>
+                    Next <ChevronRight className="w-4 h-4 ml-1" />
+                  </>
+                ) : (
+                  'Complete Tutorial'
+                )}
+              </Button>
+            </>
           )}
         </DialogFooter>
       </DialogContent>

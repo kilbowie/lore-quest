@@ -1,7 +1,8 @@
 
-import { User } from "../types";
+import { User, PlayerClass, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS } from "../types";
 import { toast } from "@/components/ui/sonner";
 import bcrypt from "bcryptjs";
+import { initializeUserStats, recalculatePlayerStats, addVerificationQuest } from "../utils/xpUtils";
 
 // Mock user database for local storage
 export const USERS_STORAGE_KEY = 'lorequest_users';
@@ -37,13 +38,15 @@ export const createUser = (name: string, email: string, username: string, passwo
       username,
       level: 1,
       experience: 0,
+      gold: 0,
       inventory: [
         {
           id: generateUniqueId(),
           type: 'compass',
           name: 'Starter Compass',
           description: 'Your first tool for exploration',
-          quantity: 1
+          quantity: 1,
+          icon: '🧭'
         }
       ],
       discoveredLocations: [],
@@ -52,8 +55,39 @@ export const createUser = (name: string, email: string, username: string, passwo
       completedQuests: [],
       emailVerified: false,
       createdAt: new Date(),
-      tutorialCompleted: false
+      tutorialCompleted: false,
+      stats: {
+        strength: 1,
+        intelligence: 1,
+        dexterity: 1,
+        distanceTravelled: 0,
+        locationsDiscovered: 0,
+        totalXpEarned: 0,
+        questXpEarned: 0,
+        walkingXpEarned: 0,
+        totalGoldEarned: 0,
+        questGoldEarned: 0,
+        questsCompleted: 0,
+        achievementsUnlocked: 0,
+        dailyQuestsCompleted: 0,
+        weeklyQuestsCompleted: 0,
+        monthlyQuestsCompleted: 0
+      },
+      health: 10,
+      maxHealth: 10,
+      mana: 10,
+      maxMana: 10,
+      stamina: 10,
+      maxStamina: 10,
+      isDead: false,
+      lastRegenerationTime: new Date()
     };
+    
+    // Set stats based on default values
+    recalculatePlayerStats(newUser);
+    
+    // Add verification quest
+    addVerificationQuest(newUser);
     
     // Create auth record
     const userAuth = {
@@ -115,6 +149,15 @@ export const loginUser = (usernameOrEmail: string, password: string): User | nul
       throw new Error('User not found');
     }
     
+    // Ensure user has stats
+    if (!user.stats) {
+      initializeUserStats(user);
+      recalculatePlayerStats(user);
+    }
+    
+    // Check for regeneration
+    checkRegeneration(user);
+    
     // Check if email is verified
     if (!user.emailVerified) {
       toast.warning('Please verify your email address', {
@@ -133,6 +176,143 @@ export const loginUser = (usernameOrEmail: string, password: string): User | nul
   } catch (error) {
     console.error('Error logging in:', error);
     return null;
+  }
+};
+
+// Check for health/mana/stamina regeneration
+export const checkRegeneration = (user: User): User => {
+  if (!user.lastRegenerationTime) {
+    user.lastRegenerationTime = new Date();
+    return user;
+  }
+  
+  const now = new Date();
+  const lastRegen = new Date(user.lastRegenerationTime);
+  const elapsedMs = now.getTime() - lastRegen.getTime();
+  
+  // Skip if user is dead
+  if (user.isDead) {
+    user.lastRegenerationTime = now;
+    return user;
+  }
+  
+  // Calculate regeneration (12 hours for full regen)
+  const FULL_REGEN_TIME_MS = 12 * 60 * 60 * 1000;
+  const regenRatio = Math.min(1, elapsedMs / FULL_REGEN_TIME_MS);
+  
+  if (regenRatio > 0) {
+    // Calculate regeneration amounts
+    const healthRegen = Math.floor(user.maxHealth * regenRatio);
+    const manaRegen = Math.floor(user.maxMana * regenRatio);
+    const staminaRegen = Math.floor(user.maxStamina * regenRatio);
+    
+    // Apply regeneration
+    user.health = Math.min(user.maxHealth, user.health + healthRegen);
+    user.mana = Math.min(user.maxMana, user.mana + manaRegen);
+    user.stamina = Math.min(user.maxStamina, user.stamina + staminaRegen);
+    user.lastRegenerationTime = now;
+    
+    // Save user
+    updateUser(user);
+    
+    // Check for auto-resurrection after 12 hours
+    if (user.isDead && regenRatio >= 1) {
+      user.isDead = false;
+      user.health = Math.floor(user.maxHealth * 0.3); // Resurrect with 30% health
+      
+      toast.success('You have been resurrected', {
+        description: 'You have recovered after resting for 12 hours.'
+      });
+    }
+  }
+  
+  return user;
+};
+
+// Set user's class
+export const setUserClass = (userId: string, playerClass: PlayerClass): User => {
+  try {
+    // Get existing users
+    const users = loadUsers();
+    
+    // Find user
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+      throw new Error('User not found');
+    }
+    
+    const user = users[userIndex];
+    
+    // Set class
+    user.playerClass = playerClass;
+    
+    // Initialize stats if they don't exist
+    if (!user.stats) {
+      initializeUserStats(user);
+    }
+    
+    // Apply base stats from class
+    const baseStats = CLASS_DESCRIPTIONS[playerClass].baseStats;
+    
+    // Recalculate health, mana, stamina based on class
+    recalculatePlayerStats(user);
+    
+    // Save updated users
+    users[userIndex] = user;
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    
+    // Update current user if it's the same
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('Error setting user class:', error);
+    
+    // Return original user if available
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    return user || {
+      id: userId,
+      name: '',
+      email: '',
+      username: '',
+      level: 1,
+      experience: 0,
+      gold: 0,
+      inventory: [],
+      discoveredLocations: [],
+      achievements: [],
+      activeQuests: [],
+      completedQuests: [],
+      createdAt: new Date(),
+      health: 10,
+      maxHealth: 10,
+      mana: 10,
+      maxMana: 10,
+      stamina: 10,
+      maxStamina: 10,
+      isDead: false,
+      stats: {
+        strength: 1,
+        intelligence: 1,
+        dexterity: 1,
+        distanceTravelled: 0,
+        locationsDiscovered: 0,
+        totalXpEarned: 0,
+        questXpEarned: 0,
+        walkingXpEarned: 0,
+        totalGoldEarned: 0,
+        questGoldEarned: 0,
+        questsCompleted: 0,
+        achievementsUnlocked: 0,
+        dailyQuestsCompleted: 0,
+        weeklyQuestsCompleted: 0,
+        monthlyQuestsCompleted: 0
+      }
+    };
   }
 };
 
@@ -238,12 +418,70 @@ export const verifyEmail = (token: string): boolean => {
     // Update user
     users[userIndex].emailVerified = true;
     
+    // Complete verification quest
+    const user = users[userIndex];
+    
+    // Find verification achievement
+    const achievementIndex = user.achievements.findIndex(a => a.achievementId === 'email-verification');
+    if (achievementIndex >= 0) {
+      user.achievements[achievementIndex].completed = true;
+      user.achievements[achievementIndex].progress = 1;
+      user.achievements[achievementIndex].completedAt = new Date();
+      
+      // Award XP and gold rewards
+      const xpReward = 100;
+      const goldReward = 50;
+      
+      user.experience += xpReward;
+      user.gold = (user.gold || 0) + goldReward;
+      
+      // Update stats
+      if (!user.stats) {
+        user.stats = {
+          strength: 1,
+          intelligence: 1,
+          dexterity: 1,
+          distanceTravelled: 0,
+          locationsDiscovered: 0,
+          totalXpEarned: user.experience,
+          questXpEarned: xpReward,
+          walkingXpEarned: 0,
+          totalGoldEarned: user.gold,
+          questGoldEarned: goldReward,
+          questsCompleted: 1,
+          achievementsUnlocked: 1,
+          dailyQuestsCompleted: 0,
+          weeklyQuestsCompleted: 0,
+          monthlyQuestsCompleted: 0
+        };
+      } else {
+        user.stats.totalXpEarned += xpReward;
+        user.stats.questXpEarned += xpReward;
+        user.stats.totalGoldEarned += goldReward;
+        user.stats.questGoldEarned += goldReward;
+        user.stats.questsCompleted += 1;
+        user.stats.achievementsUnlocked += 1;
+      }
+    }
+    
     // Save users
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
     
     // Remove token
     const filteredTokens = tokens.filter(t => t.token !== token);
     localStorage.setItem(VERIFICATION_TOKENS_KEY, JSON.stringify(filteredTokens));
+    
+    // Update current user if it's the same
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === tokenData.userId) {
+      currentUser.emailVerified = true;
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      
+      // Show success message
+      toast.success('Email verification complete!', {
+        description: `You earned ${xpReward} XP and ${goldReward} Gold!`
+      });
+    }
     
     return true;
   } catch (error) {

@@ -31,7 +31,7 @@ export const addItemToInventory = (
     // Add new item, ensuring it matches the required type
     if (isEquippable && equipmentStats) {
       // For equippable items, we need to ensure isEquippable is literal 'true'
-      const equippableItem = {
+      const equippableItem: EquippableItem = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2),
         type,
         name,
@@ -42,7 +42,7 @@ export const addItemToInventory = (
         value,
         isEquippable: true as const, // This ensures TypeScript treats it as literal 'true'
         equipmentStats
-      } as EquippableItem; // Type assertion to EquippableItem
+      };
       
       user.inventory.push(equippableItem);
       item = equippableItem;

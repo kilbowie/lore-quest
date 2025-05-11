@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -79,11 +78,15 @@ const MapExplorerContent: React.FC = () => {
     
     setIsLoading(false);
     
-    // Fetch all locations from MapComponent to use for achievement calculations
-    import('../components/MapComponent').then(module => {
-      // This is just to get the locations array - replace with your actual method
-      // to get all locations
-      setAllLocations(module.default.cityLocations || []);
+    // Fetch all locations from an API or local data source
+    // This is a temporary solution, replace with actual location data source
+    import('../utils/locationData').then(module => {
+      if (module.locations) {
+        setAllLocations(module.locations);
+      }
+    }).catch(error => {
+      console.error('Failed to load location data:', error);
+      setAllLocations([]);
     });
   }, []);
   

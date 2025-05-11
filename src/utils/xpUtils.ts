@@ -20,10 +20,14 @@ export const xpToNextLevel = (currentLevel: number): number => {
 };
 
 // Calculate current level progress percentage
-export const calculateLevelProgress = (user: User): number => {
-  const currentLevelXp = calculateXpForLevel(user.level);
-  const nextLevelXp = calculateXpForLevel(user.level + 1);
-  const xpInCurrentLevel = user.experience - currentLevelXp;
+// Modified to accept either a User object or a level number
+export const calculateLevelProgress = (userOrLevel: User | number): number => {
+  const level = typeof userOrLevel === 'number' ? userOrLevel : userOrLevel.level;
+  const experience = typeof userOrLevel === 'number' ? 0 : userOrLevel.experience;
+  
+  const currentLevelXp = calculateXpForLevel(level);
+  const nextLevelXp = calculateXpForLevel(level + 1);
+  const xpInCurrentLevel = experience - currentLevelXp;
   const xpRequiredForNextLevel = nextLevelXp - currentLevelXp;
   
   return Math.min(100, Math.floor((xpInCurrentLevel / xpRequiredForNextLevel) * 100));

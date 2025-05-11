@@ -6,7 +6,8 @@ import { calculateLevelProgress, xpToNextLevel } from '../utils/xpUtils';
 import { Progress } from '@/components/ui/progress';
 import { 
   Shield, Award, Package, ScrollText, 
-  ChevronDown, ChevronUp, Crown, CheckCircle2 
+  ChevronDown, ChevronUp, Crown, CheckCircle2,
+  Compass, MapIcon
 } from 'lucide-react';
 import { 
   Tabs, TabsContent, TabsList, TabsTrigger 
@@ -25,7 +26,7 @@ const UserDashboard: React.FC<{
   const levelProgress = calculateLevelProgress(user);
   const xpNeeded = xpToNextLevel(user.level);
   const currentLevelXp = user.experience - calculateLevelProgress(user.level);
-  const progressXp = Math.floor(levelProgress * xpNeeded / 100);
+  const progressXp = Math.floor((levelProgress * xpNeeded) / 100);
   
   const handleTrackAchievement = (achievementId: string) => {
     if (!user) return;
@@ -274,7 +275,7 @@ const UserDashboard: React.FC<{
                       <div className="flex items-center gap-2">
                         {item.type === 'rune' && <Crown size={18} className="text-lorequest-gold" />}
                         {item.type === 'compass' && <Compass size={18} className="text-lorequest-gold" />}
-                        {item.type === 'map' && <Map size={18} className="text-lorequest-gold" />}
+                        {item.type === 'map' && <MapIcon size={18} className="text-lorequest-gold" />}
                         <h4 className="font-medium text-lorequest-gold">{item.name}</h4>
                       </div>
                       {item.description && (

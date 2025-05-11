@@ -1,4 +1,3 @@
-
 import { User, PlayerClass, CLASS_DESCRIPTIONS, STAT_MULTIPLIERS } from "../types";
 import { toast } from "@/components/ui/sonner";
 import bcrypt from "bcryptjs";
@@ -9,6 +8,10 @@ export const USERS_STORAGE_KEY = 'lorequest_users';
 export const CURRENT_USER_KEY = 'lorequest_current_user';
 export const VERIFICATION_TOKENS_KEY = 'lorequest_verification_tokens';
 export const PASSWORD_RESET_TOKENS_KEY = 'lorequest_reset_tokens';
+
+// Add missing variables at the right location
+const TUTORIAL_XP_REWARD = 150;
+const TUTORIAL_GOLD_REWARD = 50;
 
 // Create a new user
 export const createUser = (name: string, email: string, username: string, password: string): User | null => {
@@ -429,8 +432,8 @@ export const verifyEmail = (token: string): boolean => {
       user.achievements[achievementIndex].completedAt = new Date();
       
       // Award XP and gold rewards
-      const xpReward = 100;
-      const goldReward = 50;
+      const xpReward = TUTORIAL_XP_REWARD;
+      const goldReward = TUTORIAL_GOLD_REWARD;
       
       user.experience += xpReward;
       user.gold = (user.gold || 0) + goldReward;

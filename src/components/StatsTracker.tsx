@@ -14,10 +14,10 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { Compass, Award, ScrollText, Walking, BaggageClaim, Shield, Clock } from 'lucide-react';
+import { Compass, Award, ScrollText, Activity, BaggageClaim, Shield, Clock } from 'lucide-react';
 import { initializeUserStats } from '../utils/xpUtils';
 import { getUserWalkingData } from '../utils/xpUtils';
-import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/Progress';
 import { getTimeBasedQuests } from '../utils/xpUtils';
 
 const StatsTracker: React.FC = () => {
@@ -115,7 +115,7 @@ const StatsTracker: React.FC = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-1 text-lorequest-gold">
-                    <Walking size={18} />
+                    <Activity size={18} />
                     Walking Progress
                   </CardTitle>
                   <span className="text-sm text-lorequest-gold">{walkingData.totalDistanceKm.toFixed(2)} km today</span>

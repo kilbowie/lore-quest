@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -16,8 +15,15 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import AuthForms from '../components/AuthForms';
 import UserProfile from '../components/UserProfile';
 import UserDashboard from '../components/UserDashboard';
-import { updateAchievementsOnDiscovery } from '../utils/achievementsUtils';
-import { initializeAchievements } from '../utils/achievementsUtils';
+import { 
+  getAllAchievements, 
+  getAchievementById, 
+  createTerritoryAchievement 
+} from '../utils/achievementsUtils';
+import { 
+  updateAchievementsOnDiscovery,
+  initializeAchievements 
+} from '../utils/userAchievements';
 import TutorialQuest from '../components/TutorialQuest';
 import WalkingTracker from '../components/WalkingTracker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';

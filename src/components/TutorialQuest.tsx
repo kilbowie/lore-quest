@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -9,8 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Award, CheckCircle, ChevronRight, ChevronLeft, Shield, Wand, Walking } from 'lucide-react';
+import { Progress } from '@/components/Progress';
+import { Award, CheckCircle, ChevronRight, ChevronLeft, Shield, Wand, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TutorialStep, PlayerClass, CLASS_DESCRIPTIONS } from '../types';
 import { addExperience, addItemToInventory, updateUserStats } from '../utils/xpUtils';

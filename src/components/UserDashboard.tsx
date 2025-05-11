@@ -3,15 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { User, Achievement, LEVEL_CONSTANTS } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { calculateLevelProgress, xpToNextLevel, checkRegeneration, upgradeStatWithRune } from '../utils/xpUtils';
-import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/Progress';
 import { 
   Shield, Award, Package, ScrollText, 
   ChevronDown, ChevronUp, Crown, CheckCircle2,
   Compass, MapIcon, Info, BaggageClaim, Heart, 
-  Brain, Zap, Clock, User as UserIcon
+  Brain, Zap, Clock, User as UserIcon, Activity
 } from 'lucide-react';
 import { 
-  Tabs, TabsContent, TabsList, TabsTrigger 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
 } from '@/components/ui/tabs';
 import { trackAchievement, untrackAchievement } from '../utils/xpUtils';
 import { getAchievementById } from '../utils/achievementsUtils';

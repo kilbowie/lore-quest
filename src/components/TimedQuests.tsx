@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { generateTimeBasedQuests, getTimeBasedQuests } from '../utils/xpUtils';
-import { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/Progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, CheckCircle } from 'lucide-react';

@@ -1,4 +1,3 @@
-
 import { 
   LEVEL_CONSTANTS, User, Achievement, UserAchievement, InventoryItem, 
   UserStats, STAT_MULTIPLIERS, PlayerClass, CLASS_DESCRIPTIONS, 
@@ -864,16 +863,21 @@ export const checkQuestProgress = (user: User, activityType: 'walk' | 'discover'
           
           // Add item reward if available
           if (quest.itemReward) {
+            const reward = { 
+              type: quest.itemReward.type as "potion" | "elixir" | "other", 
+              name: quest.itemReward.name, 
+              quantity: quest.itemReward.quantity 
+            };
             addItemToInventory(
               updatedUser,
-              quest.itemReward.type as any,
-              quest.itemReward.name,
+              reward.type,
+              reward.name,
               `Reward from ${quest.name} quest`,
-              quest.itemReward.quantity
+              reward.quantity
             );
             
             toast.success(`Quest Complete: ${quest.name}`, {
-              description: `Earned ${quest.itemReward.quantity} ${quest.itemReward.name}!`
+              description: `Earned ${reward.quantity} ${reward.name}!`
             });
           }
           

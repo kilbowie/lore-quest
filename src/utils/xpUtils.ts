@@ -1,4 +1,4 @@
-import { User, Quest, Achievement, Item, ItemType, EquippableItem, InventoryItem, EquipmentStats } from "../types";
+import { User, Quest, Achievement, ItemType, EquippableItem, InventoryItem, EquipmentStats } from "../types";
 import { getUsers, updateUser } from "./authUtils";
 import { toast } from "@/components/ui/sonner";
 
@@ -32,18 +32,18 @@ export const addExperience = (user: User, amount: number, reason?: string): User
     updatedUser.gold = (updatedUser.gold || 0) + (newLevel * 50); // Gold reward based on new level
     
     // Add a leveling reward item
-    if (newLevel % 5 === 0) {
-      // Every 5 levels, add a special item
-      updatedUser = addItemToInventory(
-        updatedUser,
-        "Special Reward",
-        `Level ${newLevel} Achievement Chest`,
-        "chest",
-        1,
-        "A special reward for reaching level " + newLevel,
-        "chest"
-      );
-    }
+    const rewardUpdatedUser = addItemToInventory(
+      updatedUser,
+      "chest",
+      `Level ${newLevel} Achievement Chest`,
+      "A special reward for reaching level " + newLevel,
+      1,
+      "chest",
+      "none"
+    );
+    
+    // Copy properties from the reward updated user
+    Object.assign(updatedUser, rewardUpdatedUser);
   }
   
   // If reason is provided, show a toast with the reason
@@ -69,12 +69,38 @@ export const calculateExperienceForLevel = (level: number): number => {
   return level * level * 100;
 };
 
+// Calculate level progress percentage
+export const calculateLevelProgress = (user: User): number => {
+  if (!user) return 0;
+  
+  const currentLevel = user.level || 1;
+  const currentXP = user.experience || 0;
+  const xpForCurrentLevel = calculateExperienceForLevel(currentLevel);
+  const xpForNextLevel = calculateExperienceForLevel(currentLevel + 1);
+  
+  const xpProgress = currentXP - xpForCurrentLevel;
+  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+  
+  return Math.floor((xpProgress / xpNeeded) * 100);
+};
+
+// Calculate XP needed for next level
+export const xpToNextLevel = (user: User): number => {
+  if (!user) return 0;
+  
+  const currentLevel = user.level || 1;
+  const currentXP = user.experience || 0;
+  const xpForNextLevel = calculateExperienceForLevel(currentLevel + 1);
+  
+  return xpForNextLevel - currentXP;
+};
+
 // Add an item to the user's inventory
 export const addItemToInventory = (
   user: User, 
-  name: string, 
-  description: string, 
   type: ItemType, 
+  name: string, 
+  description: string,
   quantity: number = 1, 
   icon?: string,
   useEffect?: "health" | "mana" | "stamina" | "revival" | "none",
@@ -141,164 +167,262 @@ export const addItemToInventory = (
   return updatedUser;
 };
 
-// Remove an item from the user's inventory
-export const removeItemFromInventory = (user: User, itemId: string, quantityToRemove: number = 1): User => {
-  const inventory = user.inventory ? [...user.inventory] : [];
-  const itemIndex = inventory.findIndex(item => item.id === itemId);
+// Add gold to user
+export const addGold = (user: User, amount: number, reason?: string): User => {
+  const updatedUser = { ...user };
+  updatedUser.gold = (updatedUser.gold || 0) + amount;
   
-  if (itemIndex === -1) {
-    console.warn(`Item with ID ${itemId} not found in inventory.`);
-    return user;
-  }
-  
-  const item = inventory[itemIndex];
-  
-  if (item.quantity && item.quantity > quantityToRemove) {
-    // Decrease the quantity of the item
-    inventory[itemIndex].quantity -= quantityToRemove;
-  } else {
-    // Remove the item from the inventory
-    inventory.splice(itemIndex, 1);
-  }
-  
-  const updatedUser = { ...user, inventory };
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Equip an item
-export const equipItem = (user: User, itemId: string): User => {
-  const inventory = user.inventory ? [...user.inventory] : [];
-  const itemIndex = inventory.findIndex(item => item.id === itemId);
-  
-  if (itemIndex === -1) {
-    console.warn(`Item with ID ${itemId} not found in inventory.`);
-    return user;
-  }
-  
-  const item = inventory[itemIndex];
-  
-  if (!item.isEquippable) {
-    console.warn(`Item with ID ${itemId} is not equippable.`);
-    return user;
-  }
-  
-  // Get the equipment slot based on the item type
-  const equipmentSlot = item.type;
-  
-  // Create a copy of the user's equipment or initialize if it doesn't exist
-  const equipment = user.equipment ? { ...user.equipment } : {};
-  
-  // Unequip the currently equipped item in the slot, if any
-  if (equipment[equipmentSlot]) {
-    const unequippedItem = equipment[equipmentSlot];
-    
-    // Add the unequipped item back to the inventory
-    const updatedUserWithUnequippedItem = addItemToInventory(
-      user,
-      unequippedItem.name,
-      unequippedItem.description,
-      unequippedItem.type,
-      1,
-      unequippedItem.icon,
-      unequippedItem.useEffect,
-      unequippedItem.value,
-      true,
-      unequippedItem.equipmentStats
-    );
-    
-    // Remove the unequipped item from the equipment
-    delete equipment[equipmentSlot];
-    
-    // Remove the equipped item from the inventory
-    const updatedUserWithoutEquippedItem = removeItemFromInventory(updatedUserWithUnequippedItem, itemId, 1);
-    
-    // Equip the new item
-    equipment[equipmentSlot] = item;
-    
-    // Update user with new equipment and inventory
-    const updatedUser = { ...updatedUserWithoutEquippedItem, equipment };
-    
-    // Update user armor
-    updatedUser.armor = calculateArmor(updatedUser);
-    
-    updateUser(updatedUser);
-    
-    return updatedUser;
-  } else {
-    // Equip the new item
-    equipment[equipmentSlot] = item;
-    
-    // Remove the equipped item from the inventory
-    const updatedUserWithoutEquippedItem = removeItemFromInventory(user, itemId, 1);
-    
-    // Update user with new equipment and inventory
-    const updatedUser = { ...updatedUserWithoutEquippedItem, equipment };
-    
-    // Update user armor
-    updatedUser.armor = calculateArmor(updatedUser);
-    
-    updateUser(updatedUser);
-    
-    return updatedUser;
-  }
-};
-
-// Unequip an item
-export const unequipItem = (user: User, itemType: ItemType): User => {
-  // Create a copy of the user's equipment or initialize if it doesn't exist
-  const equipment = user.equipment ? { ...user.equipment } : {};
-  
-  // Check if there is an item equipped in the slot
-  if (!equipment[itemType]) {
-    console.warn(`No item equipped in slot ${itemType}.`);
-    return user;
-  }
-  
-  const unequippedItem = equipment[itemType];
-  
-  // Add the unequipped item back to the inventory
-  const updatedUserWithUnequippedItem = addItemToInventory(
-    user,
-    unequippedItem.name,
-    unequippedItem.description,
-    unequippedItem.type,
-    1,
-    unequippedItem.icon,
-    unequippedItem.useEffect,
-    unequippedItem.value,
-    true,
-    unequippedItem.equipmentStats
-  );
-  
-  // Remove the unequipped item from the equipment
-  delete equipment[itemType];
-  
-  // Update user with new equipment and inventory
-  const updatedUser = { ...updatedUserWithUnequippedItem, equipment };
-  
-  // Update user armor
-  updatedUser.armor = calculateArmor(updatedUser);
-  
-  updateUser(updatedUser);
-  
-  return updatedUser;
-};
-
-// Calculate armor based on equipped items
-export const calculateArmor = (user: User): number => {
-  let armor = 0;
-  
-  if (user.equipment) {
-    Object.values(user.equipment).forEach(item => {
-      if (item && item.equipmentStats && item.equipmentStats.armor) {
-        armor += item.equipmentStats.armor;
-      }
+  if (reason && amount > 0) {
+    toast.success(`+${amount} Gold`, {
+      description: reason
     });
   }
   
-  return armor;
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+// Spend gold (return original user if not enough gold)
+export const spendGold = (user: User, amount: number, reason?: string): User => {
+  if ((user.gold || 0) < amount) {
+    toast.error(`Not enough gold`, {
+      description: `You need ${amount} gold for this purchase.`
+    });
+    return user;
+  }
+  
+  const updatedUser = { ...user };
+  updatedUser.gold = (updatedUser.gold || 0) - amount;
+  
+  if (reason) {
+    toast.success(`Spent ${amount} Gold`, {
+      description: reason
+    });
+  }
+  
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+// Get user walking data
+export const getUserWalkingData = (userId: string) => {
+  const todayKey = new Date().toISOString().split('T')[0];
+  const storageKey = `walking_data_${userId}_${todayKey}`;
+  
+  const storedData = localStorage.getItem(storageKey);
+  
+  if (storedData) {
+    return JSON.parse(storedData);
+  } else {
+    return {
+      totalDistanceKm: 0,
+      earnedXP: 0,
+      steps: 0,
+      lastUpdate: new Date().toISOString()
+    };
+  }
+};
+
+// Add walking distance
+export const addWalkingDistance = (user: User, distanceKm: number): User => {
+  if (!user) return user;
+  
+  // Get today's date string for storage key
+  const todayKey = new Date().toISOString().split('T')[0];
+  const storageKey = `walking_data_${user.id}_${todayKey}`;
+  
+  // Get existing walking data or initialize
+  const walkingData = getUserWalkingData(user.id);
+  
+  // Update walking data
+  walkingData.totalDistanceKm += distanceKm;
+  walkingData.steps += Math.floor(distanceKm * 1312); // ~1312 steps per km
+  
+  // Calculate XP earned (10 XP per km)
+  const xpEarned = Math.floor(distanceKm * 10);
+  walkingData.earnedXP += xpEarned;
+  walkingData.lastUpdate = new Date().toISOString();
+  
+  // Save updated walking data
+  localStorage.setItem(storageKey, JSON.stringify(walkingData));
+  
+  // Update user stats
+  const updatedUser = {
+    ...user,
+    stats: {
+      ...user.stats,
+      distanceTravelled: (user.stats?.distanceTravelled || 0) + distanceKm,
+      walkingXpEarned: (user.stats?.walkingXpEarned || 0) + xpEarned
+    }
+  };
+  
+  // Add the earned XP to the user
+  return addExperience(updatedUser, xpEarned, `Walking ${distanceKm.toFixed(2)} km`);
+};
+
+// Check and regenerate health, mana, stamina
+export const checkRegeneration = (user: User): User => {
+  if (!user) return user;
+  
+  const lastChecked = user.lastRegenCheck ? new Date(user.lastRegenCheck) : new Date();
+  const now = new Date();
+  const diffMinutes = (now.getTime() - lastChecked.getTime()) / (1000 * 60);
+  
+  // If less than 5 minutes since last check, return user unchanged
+  if (diffMinutes < 5) return user;
+  
+  // Calculate regeneration (1% of max per 5 minutes)
+  const healthRegen = Math.floor((user.maxHealth || 100) * 0.01 * (diffMinutes / 5));
+  const manaRegen = Math.floor((user.maxMana || 100) * 0.01 * (diffMinutes / 5));
+  const staminaRegen = Math.floor((user.maxStamina || 100) * 0.01 * (diffMinutes / 5));
+  
+  const updatedUser = { ...user };
+  
+  // Apply regeneration, not exceeding max values
+  updatedUser.health = Math.min(user.maxHealth || 100, (user.health || 0) + healthRegen);
+  updatedUser.mana = Math.min(user.maxMana || 100, (user.mana || 0) + manaRegen);
+  updatedUser.stamina = Math.min(user.maxStamina || 100, (user.stamina || 0) + staminaRegen);
+  updatedUser.lastRegenCheck = now.toISOString();
+  
+  // Only update if there were actual changes
+  if (healthRegen > 0 || manaRegen > 0 || staminaRegen > 0) {
+    updateUser(updatedUser);
+  }
+  
+  return updatedUser;
+};
+
+// Initialize time-based quests
+export const getTimeBasedQuests = (userId: string) => {
+  // Get the quests from local storage or initialize
+  const storageKey = `time_quests_${userId}`;
+  const storedQuests = localStorage.getItem(storageKey);
+  
+  if (storedQuests) {
+    return JSON.parse(storedQuests);
+  }
+  
+  // Initialize with default quests
+  const defaultQuests = {
+    daily: [
+      {id: 'daily-1', title: 'Daily Walk', description: 'Walk 2km today', completed: false},
+      {id: 'daily-2', title: 'Visit Landmark', description: 'Discover a new location', completed: false}
+    ],
+    weekly: [
+      {id: 'weekly-1', title: 'Complete Daily Quests', description: 'Complete 5 daily quests', completed: false},
+      {id: 'weekly-2', title: 'Long Journey', description: 'Walk a total of 10km', completed: false}
+    ],
+    monthly: [
+      {id: 'monthly-1', title: 'Dedicated Explorer', description: 'Complete 4 weekly quests', completed: false},
+      {id: 'monthly-2', title: 'Grand Expedition', description: 'Discover 10 unique locations', completed: false}
+    ]
+  };
+  
+  // Save to local storage
+  localStorage.setItem(storageKey, JSON.stringify(defaultQuests));
+  
+  return defaultQuests;
+};
+
+// Create specific stat tracking/updating functions
+export const updateUserStats = (user: User, statUpdates: Partial<typeof user.stats>): User => {
+  if (!user || !user.stats) return user;
+  
+  const updatedUser = {
+    ...user,
+    stats: {
+      ...user.stats,
+      ...statUpdates
+    }
+  };
+  
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+// Upgrade player stat with rune (STR, INT, DEX)
+export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence' | 'dexterity'): User => {
+  if (!user) return user;
+  
+  const updatedUser = { ...user };
+  if (!updatedUser.stats) {
+    updatedUser.stats = {
+      strength: 1,
+      intelligence: 1,
+      dexterity: 1,
+      distanceTravelled: 0,
+      locationsDiscovered: 0,
+      totalXpEarned: 0,
+      questXpEarned: 0,
+      walkingXpEarned: 0,
+      totalGoldEarned: 0,
+      questGoldEarned: 0,
+      questsCompleted: 0,
+      achievementsUnlocked: 0,
+      dailyQuestsCompleted: 0,
+      weeklyQuestsCompleted: 0,
+      monthlyQuestsCompleted: 0
+    };
+  }
+  
+  // Increase the specified stat
+  updatedUser.stats[stat] += 1;
+  
+  // Update derived stats based on core stats
+  updatedUser.maxHealth = 100 + (updatedUser.stats.strength * 10);
+  updatedUser.maxMana = 100 + (updatedUser.stats.intelligence * 10);
+  updatedUser.maxStamina = 100 + (updatedUser.stats.dexterity * 10);
+  
+  // Ensure current values don't exceed new maximums
+  updatedUser.health = Math.min(updatedUser.health || 100, updatedUser.maxHealth);
+  updatedUser.mana = Math.min(updatedUser.mana || 100, updatedUser.maxMana);
+  updatedUser.stamina = Math.min(updatedUser.stamina || 100, updatedUser.maxStamina);
+  
+  updateUser(updatedUser);
+  
+  toast.success(`${stat.charAt(0).toUpperCase() + stat.slice(1)} increased to ${updatedUser.stats[stat]}`, {
+    description: "Your character's abilities have improved!"
+  });
+  
+  return updatedUser;
+};
+
+// Achievement tracking functions
+export const trackAchievement = (user: User, achievementId: string): User => {
+  if (!user || !user.trackedAchievements) return user;
+  
+  // Only allow 3 tracked achievements max
+  if (user.trackedAchievements.length >= 3) {
+    toast.error("You can only track 3 achievements at once", {
+      description: "Please untrack an achievement before tracking a new one"
+    });
+    return user;
+  }
+  
+  // Check if achievement is already tracked
+  if (user.trackedAchievements.includes(achievementId)) {
+    return user;
+  }
+  
+  const updatedUser = {
+    ...user,
+    trackedAchievements: [...user.trackedAchievements, achievementId]
+  };
+  
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+export const untrackAchievement = (user: User, achievementId: string): User => {
+  if (!user || !user.trackedAchievements) return user;
+  
+  const updatedUser = {
+    ...user,
+    trackedAchievements: user.trackedAchievements.filter(id => id !== achievementId)
+  };
+  
+  updateUser(updatedUser);
+  return updatedUser;
 };
 
 // Initialize user stats

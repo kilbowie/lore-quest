@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label';
 import { updateUser } from '../utils/authUtils';
 import { toast } from '@/components/ui/sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import PlayerStatus from './PlayerStatus';
+import InventoryIcon from './InventoryIcon';
 
 interface UserProfileProps {
   onToggleDashboard: () => void;
@@ -73,6 +75,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ onToggleDashboard }) => {
       localStorage.removeItem(`user_achievements_${user.id}`);
       localStorage.removeItem(`user_quests_${user.id}`);
       localStorage.removeItem(`user_inventory_${user.id}`);
+      localStorage.removeItem(`walking_data_${user.id}_${new Date().toISOString().split('T')[0]}`);
+      localStorage.removeItem(`lastQuestGenerationDate_${user.id}`);
+      localStorage.removeItem(`time_quests_${user.id}`);
       
       // Show success message
       toast.success("Account deleted successfully", {
@@ -87,7 +92,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ onToggleDashboard }) => {
   };
   
   return (
-    <>
+    <div className="flex items-center">
+      <div className="flex items-center gap-2 mr-4">
+        <PlayerStatus />
+        <InventoryIcon />
+      </div>
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative w-10 h-10 rounded-full p-0">
@@ -236,7 +246,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onToggleDashboard }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 

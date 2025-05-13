@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sword, Shield, Package, ArrowRight } from 'lucide-react';
 import { User, Enemy, CombatAction, CombatLogEntry } from '../types';
 
-interface BattleEncounterProps {
+export interface BattleEncounterProps {
   user: User;
   onUserUpdate: (user: User) => void;
   onClose?: () => void;

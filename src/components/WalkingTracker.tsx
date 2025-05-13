@@ -1,18 +1,45 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation } from 'lucide-react';
 
-interface WalkingTrackerProps {
+export interface WalkingTrackerProps {
   onClose?: () => void;
   onComplete?: () => void;
+  showDetails?: boolean;
+  tutorialMode?: boolean;
+  tutorialTarget?: number;
+  onWalkingProgress?: (distanceAdded: number) => void;
 }
 
 const WalkingTracker: React.FC<WalkingTrackerProps> = ({
   onClose,
-  onComplete
+  onComplete,
+  showDetails = true,
+  tutorialMode = false,
+  tutorialTarget = 100,
+  onWalkingProgress
 }) => {
   const [distance, setDistance] = useState<number>(0);
+
+  // Simulate walking progress - this would be replaced with actual step tracking
+  useEffect(() => {
+    if (!tutorialMode) return;
+    
+    const interval = setInterval(() => {
+      const distanceAdded = Math.random() * 5 + 1;
+      setDistance(prev => {
+        const newDistance = prev + distanceAdded;
+        if (onWalkingProgress) {
+          onWalkingProgress(distanceAdded);
+        }
+        return newDistance;
+      });
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [tutorialMode, onWalkingProgress]);
 
   // Update the UI
   return (
@@ -34,32 +61,34 @@ const WalkingTracker: React.FC<WalkingTrackerProps> = ({
         <div className="w-full bg-zinc-800 rounded-full h-2.5">
           <div 
             className="bg-lorequest-gold h-2.5 rounded-full" 
-            style={{ width: `${Math.min(distance / 100 * 100, 100)}%` }}
+            style={{ width: `${Math.min(distance / (tutorialMode ? tutorialTarget : 100) * 100, 100)}%` }}
           ></div>
         </div>
         
         <p className="text-xs text-zinc-400">
-          Walk at least 100 meters to earn rewards
+          Walk at least {tutorialMode ? tutorialTarget : 100} meters to earn rewards
         </p>
         
-        <div className="flex gap-2 pt-2">
-          {onClose && (
-            <Button variant="outline" size="sm" onClick={onClose}>
-              Close
-            </Button>
-          )}
-          
-          {onComplete && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={onComplete} 
-              disabled={distance < 100}
-            >
-              Claim Reward
-            </Button>
-          )}
-        </div>
+        {showDetails && (
+          <div className="flex gap-2 pt-2">
+            {onClose && (
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            )}
+            
+            {onComplete && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={onComplete} 
+                disabled={distance < (tutorialMode ? tutorialTarget : 100)}
+              >
+                Claim Reward
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

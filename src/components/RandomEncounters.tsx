@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface RandomEncountersProps {
   distanceTraveled: number;
@@ -7,7 +9,6 @@ interface RandomEncountersProps {
 }
 
 const RandomEncounters: React.FC<RandomEncountersProps> = ({ distanceTraveled, onClose }) => {
-  // Implementation
   return (
     <Card>
       <CardHeader>
@@ -16,7 +17,7 @@ const RandomEncounters: React.FC<RandomEncountersProps> = ({ distanceTraveled, o
       <CardContent>
         <p>Distance traveled: {distanceTraveled}m</p>
         {onClose && (
-          <button onClick={onClose}>Close</button>
+          <Button onClick={onClose}>Close</Button>
         )}
       </CardContent>
     </Card>

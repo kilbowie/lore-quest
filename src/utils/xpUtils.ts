@@ -103,7 +103,7 @@ export const addItemToInventory = (
   description: string,
   quantity: number = 1, 
   icon?: string,
-  useEffect?: "health" | "mana" | "stamina" | "revival" | "none",
+  useEffect?: "health" | "mana" | "stamina" | "revival" | "energy" | "none",
   value?: number,
   isEquippable?: boolean,
   equipmentStats?: EquipmentStats
@@ -926,7 +926,7 @@ export const equipItem = (user: User, itemId: string): User => {
   }
   
   // Equip the item - ensuring it's correctly typed as EquippableItem
-  // Ensure equipmentStats is not optional when creating the equippableItem
+  // Make sure equipmentStats is not undefined
   const equippableItem: EquippableItem = {
     ...item,
     isEquippable: true as const,

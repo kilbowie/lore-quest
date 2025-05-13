@@ -263,7 +263,7 @@ export interface TutorialStep {
   };
 }
 
-// Define QuestType right before the Quest interface
+// Define QuestType separately to fix reference errors
 export type QuestType = 'daily' | 'weekly' | 'monthly' | 'tutorial' | 'verification' | 'discovery' | 'collection' | 'exploration';
 
 export interface Quest {

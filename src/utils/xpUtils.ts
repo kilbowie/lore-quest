@@ -926,7 +926,13 @@ export const equipItem = (user: User, itemId: string): User => {
   }
   
   // Equip the item - ensuring it's correctly typed as EquippableItem
-  const equippableItem = {...item, isEquippable: true as const};
+  // Ensure equipmentStats is not optional when creating the equippableItem
+  const equippableItem: EquippableItem = {
+    ...item,
+    isEquippable: true as const,
+    equipmentStats: item.equipmentStats // This is now guaranteed to exist due to the check above
+  };
+  
   updatedEquipment[slot] = equippableItem;
   
   // Update user object

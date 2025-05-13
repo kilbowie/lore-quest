@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, HelpCircle, MapPin, Walking } from 'lucide-react';
+import { CheckCircle2, HelpCircle, MapPin } from 'lucide-react';
 import {
   TutorialQuest as TutorialQuestType,
   TutorialStep,

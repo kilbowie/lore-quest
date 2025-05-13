@@ -263,11 +263,14 @@ export interface TutorialStep {
   };
 }
 
+// Define QuestType right before the Quest interface
+export type QuestType = 'daily' | 'weekly' | 'monthly' | 'tutorial' | 'verification' | 'discovery' | 'collection' | 'exploration';
+
 export interface Quest {
   id: string;
   name: string;
   description: string;
-  type: QuestType; // Quest types
+  type: QuestType; // Now QuestType is defined
   targetId?: string;
   targetCount?: number;
   xpReward: number;

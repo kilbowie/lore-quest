@@ -1,3 +1,4 @@
+
 import { User, Equipment } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "@/components/ui/sonner";
@@ -73,6 +74,9 @@ export const createUser = (name: string, email: string, username: string, passwo
     maxMana: 10,
     stamina: 10,
     maxStamina: 10,
+    energy: 5,
+    maxEnergy: 5,
+    lastEnergyRegenTime: new Date(),
     equipment: {}, // Initialize empty equipment
     armor: 0, // Initialize armor at 0
     trackedAchievements: []

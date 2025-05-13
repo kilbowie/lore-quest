@@ -54,6 +54,9 @@ export interface User {
   maxMana: number; // Maximum mana points
   stamina: number; // Current stamina points
   maxStamina: number; // Maximum stamina points
+  energy: number; // Current energy points
+  maxEnergy: number; // Maximum energy points
+  lastEnergyRegenTime: Date; // Last time energy was regenerated
   isDead: boolean; // Is player dead
   lastRegenCheck?: string; // Last time health/mana/stamina regenerated
   lastRegenerationTime: Date; // Last regeneration time
@@ -62,6 +65,9 @@ export interface User {
   equipment: Equipment;
   // New armor stat
   armor: number;
+  // Combat state
+  inCombat?: boolean;
+  defending?: boolean;
 }
 
 // Equipment slots
@@ -101,7 +107,7 @@ export type PlayerClass = 'Knight' | 'Wizard' | 'Ranger';
 export type AttackType = 'Melee' | 'Magic' | 'Ranged';
 
 // Item types extended
-export type ItemType = 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold' | 'armor';
+export type ItemType = 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold' | 'armor' | 'energy';
 
 // Equipment slots type
 export type EquipmentSlot = 'mainWeapon' | 'secondaryWeapon' | 'head' | 'body' | 'legs' | 'hands' | 'feet';
@@ -186,7 +192,8 @@ export const STAT_MULTIPLIERS = {
 // Regeneration constants
 export const REGENERATION_CONSTANTS = {
   FULL_REGEN_TIME_MS: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
-  CHECK_INTERVAL_MS: 60 * 1000 // Check every minute
+  CHECK_INTERVAL_MS: 60 * 1000, // Check every minute
+  ENERGY_REGEN_TIME_MS: 2 * 60 * 60 * 1000 // 2 hours for energy
 };
 
 // Combat constants
@@ -203,7 +210,7 @@ export interface InventoryItem {
   description?: string;
   quantity: number;
   icon?: string;
-  useEffect?: 'health' | 'mana' | 'stamina' | 'revival' | 'none';
+  useEffect?: 'health' | 'mana' | 'stamina' | 'revival' | 'energy' | 'none';
   value?: number; // How much it heals/restores or costs in gold
   isEquippable?: boolean;
   equipmentStats?: EquipmentStats;
@@ -319,10 +326,10 @@ export interface WalkingData {
 export interface StoreItem {
   id: string;
   name: string;
-  type: 'potion' | 'elixir' | 'other';
+  type: 'potion' | 'elixir' | 'other' | 'energy';
   description: string;
   goldCost: number;
-  useEffect: 'health' | 'mana' | 'stamina' | 'revival' | 'none';
+  useEffect: 'health' | 'mana' | 'stamina' | 'revival' | 'energy' | 'none';
   value: number; // How much it heals/restores
   icon?: string;
   maxPurchase?: number; // Maximum quantity a player can purchase at once
@@ -369,6 +376,26 @@ export const STORE_ITEMS: StoreItem[] = [
     useEffect: 'revival',
     value: 0,
     icon: '✨'
+  },
+  {
+    id: 'energy_potion',
+    name: 'Energy Potion',
+    type: 'energy',
+    description: 'Recovers 1 energy point.',
+    goldCost: 15,
+    useEffect: 'energy',
+    value: 1,
+    icon: '⚡'
+  },
+  {
+    id: 'ultra_energy_potion',
+    name: 'Ultra Energy Potion',
+    type: 'energy',
+    description: 'Recovers 3 energy points.',
+    goldCost: 40,
+    useEffect: 'energy',
+    value: 3,
+    icon: '⚡⚡⚡'
   }
 ];
 
@@ -616,3 +643,81 @@ export const QUEST_TYPES = {
     }
   }
 };
+
+// Enemy types
+export interface Enemy {
+  id: string;
+  name: string;
+  type: 'melee' | 'ranged' | 'magic';
+  level: number;
+  health: number;
+  maxHealth: number;
+  strength: number;
+  intelligence: number;
+  dexterity: number;
+  armor: number;
+  xpReward: number;
+  goldReward: number;
+  icon: string;
+  attackType: AttackType;
+  description?: string;
+}
+
+// Base enemy templates
+export const BASE_ENEMIES = [
+  {
+    id: 'goblin_clubber',
+    name: 'Goblin Clubber',
+    type: 'melee' as const,
+    baseHealth: 20,
+    baseStrength: 3,
+    baseIntelligence: 1,
+    baseDexterity: 2,
+    baseArmor: 1,
+    baseXp: 10,
+    baseGold: 5,
+    icon: '👺🔨',
+    attackType: 'Melee' as AttackType,
+    description: 'A small goblin wielding a crude wooden club.',
+  },
+  {
+    id: 'goblin_archer',
+    name: 'Goblin Archer',
+    type: 'ranged' as const,
+    baseHealth: 15,
+    baseStrength: 1,
+    baseIntelligence: 2,
+    baseDexterity: 4,
+    baseArmor: 0,
+    baseXp: 12,
+    baseGold: 6,
+    icon: '👺🏹',
+    attackType: 'Ranged' as AttackType,
+    description: 'A nimble goblin with a short bow and quiver of arrows.',
+  },
+  {
+    id: 'goblin_acolyte',
+    name: 'Goblin Acolyte',
+    type: 'magic' as const,
+    baseHealth: 12,
+    baseStrength: 1,
+    baseIntelligence: 4,
+    baseDexterity: 2,
+    baseArmor: 0,
+    baseXp: 15,
+    baseGold: 8,
+    icon: '👺✨',
+    attackType: 'Magic' as AttackType,
+    description: 'A goblin wearing tattered robes and wielding a crude wand.',
+  },
+];
+
+// Combat log entry type
+export interface CombatLogEntry {
+  message: string;
+  timestamp: Date;
+  type: 'player-action' | 'enemy-action' | 'system' | 'reward' | 'critical' | 'heal';
+}
+
+// Combat actions
+export type CombatAction = 'attack' | 'defend' | 'item' | 'flee';

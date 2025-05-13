@@ -1,95 +1,155 @@
-
-import React, { useEffect, useState } from 'react';
-import { Activity } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { useAuth } from '../context/AuthContext';
-import { addWalkingDistance, getUserWalkingData } from '../utils/xpUtils';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Play, Pause, Map } from 'lucide-react';
+import { calculateDistance } from '../utils/geoUtils';
+import { useAuth } from '../context/AuthContext';
+import { toast } from '@/components/ui/sonner';
+import { WalkingData } from '../types';
+import { Progress } from '@/components/ui/progress';
+import { awardWalkingXp } from '../utils/xpUtils';
+import RandomEncounters from './RandomEncounters';
 
-interface WalkingTrackerProps {
-  showDetails?: boolean;
-  onWalkingProgress?: (distance: number) => void;
-  tutorialMode?: boolean;
-  tutorialTarget?: number;
+interface LocationData {
+  latitude: number | null;
+  longitude: number | null;
+  timestamp: number | null;
 }
 
-const WalkingTracker: React.FC<WalkingTrackerProps> = ({ showDetails, onWalkingProgress, tutorialMode, tutorialTarget }) => {
-  const { user, updateCurrentUser } = useAuth();
-  const [walkingData, setWalkingData] = useState({
-    totalDistanceKm: 0,
-    earnedXP: 0,
+const WalkingTracker: React.FC = () => {
+  const { user, updateUser } = useAuth();
+  const [isTracking, setIsTracking] = useState(false);
+  const [walkingData, setWalkingData] = useState<WalkingData | null>(null);
+  const [lastPosition, setLastPosition] = useState<LocationData>({
+    latitude: null,
+    longitude: null,
+    timestamp: null,
   });
-  const [simulatedDistance, setSimulatedDistance] = useState(0);
-  
-  useEffect(() => {
-    if (user) {
-      const data = getUserWalkingData(user.id);
-      setWalkingData(data);
+  const [totalDistanceKm, setTotalDistanceKm] = useState(0);
+  const [earnedXP, setEarnedXP] = useState(0);
+  const [lastXpAwardDate, setLastXpAwardDate] = useState<string | null>(null);
+  const watchId = useRef<number | null>(null);
+
+  const walkingXpAwardInterval = 1; // Award XP every 1 km
+
+  const startTracking = useCallback(() => {
+    setIsTracking(true);
+    setTotalDistanceKm(0);
+    setEarnedXP(0);
+    setLastXpAwardDate(walkingData?.lastXpAwardDate || null);
+
+    if (navigator.geolocation) {
+      const success = (position: GeolocationPosition) => {
+        const { latitude, longitude } = position.coords;
+        const timestamp = position.timestamp;
+
+        if (lastPosition.latitude !== null && lastPosition.longitude !== null && lastPosition.timestamp !== null) {
+          const distance = calculateDistance(
+            lastPosition.latitude,
+            lastPosition.longitude,
+            latitude,
+            longitude
+          );
+
+          setTotalDistanceKm((prevDistance) => prevDistance + distance);
+
+          // Award XP every 1 km
+          if (Math.floor(totalDistanceKm) < Math.floor(totalDistanceKm + distance)) {
+            if (user) {
+              const { updatedUser, xpAwarded } = awardWalkingXp(user, walkingXpAwardInterval);
+              updateUser(updatedUser);
+              setEarnedXP(xpAwarded);
+              setLastXpAwardDate(new Date().toISOString().split('T')[0]);
+            }
+          }
+        }
+
+        setLastPosition({ latitude, longitude, timestamp });
+      };
+
+      const error = () => {
+        toast.error('Unable to retrieve your location.');
+      };
+
+      const options = {
+        enableHighAccuracy: true,
+        maximumAge: 30000,
+        timeout: 27000,
+      };
+
+      watchId.current = navigator.geolocation.watchPosition(success, error, options);
+    } else {
+      toast.error('Geolocation is not supported by your browser.');
     }
-  }, [user]);
-  
-  const handleSimulateWalking = () => {
-    if (!user) return;
-    
-    const distance = 0.1; // Simulate 100 meters
-    setSimulatedDistance(prev => prev + distance);
-    
-    // Update walking distance and award XP
-    const updatedUser = addWalkingDistance(user, distance);
-    updateCurrentUser(updatedUser);
-    
-    // Update walking data
-    const data = getUserWalkingData(user.id);
-    setWalkingData(data);
-    
-    // Notify parent component
-    if (onWalkingProgress) {
-      onWalkingProgress(distance);
+  }, [lastPosition, totalDistanceKm, updateUser, user, walkingXpAwardInterval]);
+
+  const stopTracking = () => {
+    setIsTracking(false);
+    if (watchId.current !== null) {
+      navigator.geolocation.clearWatch(watchId.current);
     }
   };
-  
+
+  useEffect(() => {
+    // Load walking data from local storage on component mount
+    const storedWalkingData = localStorage.getItem('walkingData');
+    if (storedWalkingData) {
+      setWalkingData(JSON.parse(storedWalkingData));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save walking data to local storage whenever it changes
+    localStorage.setItem('walkingData', JSON.stringify({
+      totalDistanceKm,
+      earnedXP,
+      lastXpAwardDate,
+    }));
+  }, [totalDistanceKm, earnedXP, lastXpAwardDate]);
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Activity size={16} className="text-lorequest-gold" />
-          <h4 className="text-sm font-medium text-lorequest-gold">
-            Walking Tracker
-          </h4>
-        </div>
-        <span className="text-xs text-lorequest-parchment">
-          {walkingData.totalDistanceKm.toFixed(2)} km today
-        </span>
-      </div>
+    <>
+      <Card className="bg-zinc-950/50 text-zinc-100">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Map className="mr-2 h-4 w-4" /> Walking Tracker
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            {isTracking ? (
+              <>
+                <p className="text-sm">Tracking your walk...</p>
+                <p className="text-sm">Distance: {totalDistanceKm.toFixed(2)} km</p>
+                <p className="text-sm">XP Earned: {earnedXP}</p>
+                {lastXpAwardDate && <p className="text-sm">Last XP Award: {lastXpAwardDate}</p>}
+                <Progress value={(totalDistanceKm % 1) * 100} />
+              </>
+            ) : (
+              <p className="text-sm">Start tracking your walk to earn rewards!</p>
+            )}
+          </div>
+          <Button onClick={isTracking ? stopTracking : startTracking}>
+            {isTracking ? (
+              <>
+                <Pause className="mr-2 h-4 w-4" />
+                Stop Tracking
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4" />
+                Start Tracking
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
       
-      <Progress 
-        value={Math.min(100, walkingData.totalDistanceKm * 10)} 
-        className="h-1.5"
-      />
-      
-      {showDetails && (
-        <div className="text-xs text-lorequest-parchment">
-          Total Distance: {walkingData.totalDistanceKm.toFixed(2)} km | XP Earned: {walkingData.earnedXP}
-        </div>
+      {/* Add random encounters component */}
+      {isTracking && walkingData && (
+        <RandomEncounters distanceTraveled={totalDistanceKm * 1000} />
       )}
-      
-      {tutorialMode && (
-        <div className="text-center text-lorequest-parchment text-sm">
-          Simulated progress: {simulatedDistance.toFixed(2)} / {tutorialTarget?.toFixed(1)} km
-        </div>
-      )}
-      
-      <div className="flex justify-end">
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={handleSimulateWalking}
-          className="border-lorequest-gold/30 text-lorequest-gold"
-        >
-          Simulate Walk (100m)
-        </Button>
-      </div>
-    </div>
+    </>
   );
 };
 

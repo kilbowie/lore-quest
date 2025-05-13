@@ -1,113 +1,110 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthState } from '../types';
-import { getCurrentUser, loginUser, logoutUser, createUser } from '../utils/authUtils';
-import { toast } from '@/components/ui/sonner';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '../types';
+import { 
+  loginUser, 
+  logoutUser, 
+  getUserById, 
+  createUser as createUserApi,
+  updateUser as updateUserApi 
+} from '../utils/authUtils';
 
-interface AuthContextType extends AuthState {
-  login: (usernameOrEmail: string, password: string) => Promise<boolean>;
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (usernameOrEmail: string, password: string) => Promise<User | null>;
   logout: () => void;
-  signup: (name: string, email: string, username: string, password: string) => Promise<boolean>;
-  updateCurrentUser: (user: User) => void;
+  register: (name: string, email: string, username: string, password: string) => Promise<User | null>;
+  updateUser: (updatedUser: User) => void;
+  setUser: (user: User) => void; // Added setter
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create context with default values
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  login: async () => null,
+  logout: () => {},
+  register: async () => null,
+  updateUser: () => {},
+  setUser: () => {} // Added setter default
+});
 
+// Export hook for easy context access
+export const useAuth = (): AuthContextType => useContext(AuthContext);
+
+// Provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    isLoading: true
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Check if user is already logged in
   useEffect(() => {
-    // Check if user is already logged in on mount
-    const user = getCurrentUser();
-    setAuthState({
-      isAuthenticated: !!user,
-      user,
-      isLoading: false
-    });
+    const storedUserId = localStorage.getItem('currentUserId');
+    
+    if (storedUserId) {
+      const foundUser = getUserById(storedUserId);
+      if (foundUser) {
+        setUser(foundUser);
+      }
+    }
+    
+    setIsLoading(false);
   }, []);
 
-  const login = async (usernameOrEmail: string, password: string): Promise<boolean> => {
-    try {
-      const user = loginUser(usernameOrEmail, password);
-      
-      if (user) {
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          isLoading: false
-        });
-        toast.success(`Welcome back, ${user.name}!`);
-        return true;
-      } else {
-        toast.error('Invalid username/email or password');
-        return false;
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
-      return false;
+  // Login function
+  const login = async (usernameOrEmail: string, password: string): Promise<User | null> => {
+    const loggedInUser = loginUser(usernameOrEmail, password);
+    
+    if (loggedInUser) {
+      setUser(loggedInUser);
+      localStorage.setItem('currentUserId', loggedInUser.id);
     }
+    
+    return loggedInUser;
   };
 
-  const logout = () => {
+  // Logout function
+  const logout = (): void => {
     logoutUser();
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      isLoading: false
-    });
-    toast.info('Logged out successfully');
+    setUser(null);
+    localStorage.removeItem('currentUserId');
   };
 
-  const signup = async (name: string, email: string, username: string, password: string): Promise<boolean> => {
-    try {
-      const user = createUser(name, email, username, password);
-      
-      if (user) {
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          isLoading: false
-        });
-        toast.success(`Welcome to Lore Quest, ${user.name}!`);
-        return true;
-      } else {
-        toast.error('Failed to create account');
-        return false;
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      toast.error('Signup failed. Please try again.');
-      return false;
+  // Register function
+  const register = async (name: string, email: string, username: string, password: string): Promise<User | null> => {
+    const newUser = createUserApi(name, email, username, password);
+    
+    if (newUser) {
+      setUser(newUser);
+      localStorage.setItem('currentUserId', newUser.id);
     }
+    
+    return newUser;
   };
 
-  const updateCurrentUser = (updatedUser: User) => {
-    setAuthState(prev => ({
-      ...prev,
-      user: updatedUser
-    }));
+  // Update user function
+  const updateUser = (updatedUser: User): void => {
+    setUser(updatedUser);
+    updateUserApi(updatedUser);
   };
 
-  const value = {
-    ...authState,
-    login,
-    logout,
-    signup,
-    updateCurrentUser
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser, // Make setter available
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        register,
+        updateUser
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -140,8 +141,8 @@ const BattleEncounter: React.FC<BattleEncounterProps> = ({
       </div>
       
       <div className="mt-4 flex gap-2">
-        {onClose && <Button onClick={onClose} variant="destructive">Close</Button>}
-        {onComplete && <Button onClick={onComplete} variant="default">Complete</Button>}
+        {onClose && <Button onClick={handleClose} variant="destructive">Close</Button>}
+        {onComplete && <Button onClick={handleComplete} variant="default">Complete</Button>}
       </div>
     </div>
   );

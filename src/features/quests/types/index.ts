@@ -44,3 +44,7 @@ export interface TutorialQuest {
   xpReward: number;
   goldReward: number;
 }
+
+export interface TutorialQuestProps {
+  onComplete?: () => void;
+}

@@ -5,6 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { InventoryProvider } from "./features/inventory/context/InventoryContext";
+import { QuestsProvider } from "./features/quests/context/QuestsContext";
+import { CombatProvider } from "./features/combat/context/CombatContext";
 import { useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { initializeUserStats, addVerificationQuest, generateTimeBasedQuests } from "./utils/xpUtils";
@@ -48,22 +51,34 @@ const UserInitializer = () => {
   return null;
 };
 
+const AppContent = () => (
+  <>
+    <UserInitializer />
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MapExplorer />} />
+        <Route path="/about" element={<Index />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  </>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <UserInitializer />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MapExplorer />} />
-            <Route path="/about" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <InventoryProvider>
+        <QuestsProvider>
+          <CombatProvider>
+            <TooltipProvider>
+              <AppContent />
+            </TooltipProvider>
+          </CombatProvider>
+        </QuestsProvider>
+      </InventoryProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

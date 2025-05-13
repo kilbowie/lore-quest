@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Location, UserLocation, ExplorationStats as StatsType } from '../types';
 import MapComponent from '../components/MapComponent';
@@ -29,6 +28,9 @@ import TutorialQuest from '../components/TutorialQuest';
 import WalkingTracker from '../components/WalkingTracker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { addExperience } from '../utils/xpUtils';
+import { RandomEncountersProps } from '../components/RandomEncounters';
+import { BattleEncounterProps } from '../components/BattleEncounter';
+import { WalkingTrackerProps } from '../components/WalkingTracker';
 
 const API_KEY_STORAGE_KEY = 'mapbox_api_key';
 const DARK_MODE_STORAGE_KEY = 'lorequest_dark_mode';

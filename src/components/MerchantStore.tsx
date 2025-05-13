@@ -22,7 +22,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Health Potion',
     description: 'Restores 50% of your maximum health',
     goldCost: 50,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'health',
     value: 0.5, // 50% of max
     icon: '❤️'
@@ -32,7 +32,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Mana Potion',
     description: 'Restores 50% of your maximum mana',
     goldCost: 50,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'mana',
     value: 0.5, // 50% of max
     icon: '🔵'
@@ -42,7 +42,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Stamina Potion',
     description: 'Restores 50% of your maximum stamina',
     goldCost: 50,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'stamina',
     value: 0.5, // 50% of max
     icon: '⚡'
@@ -52,7 +52,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Revival Elixir',
     description: 'Automatically revives you with 50% of all stats if you fall in battle',
     goldCost: 200,
-    type: 'elixir' as ItemType,
+    type: 'elixir',
     useEffect: 'revival',
     value: 0.5, // 50% of max
     icon: '✨'
@@ -63,7 +63,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Ultra Health Potion',
     description: 'Restores 100% of your maximum health',
     goldCost: 150,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'health',
     value: 1.0, // 100% of max
     icon: '❤️+'
@@ -73,7 +73,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Ultra Mana Potion',
     description: 'Restores 100% of your maximum mana',
     goldCost: 150,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'mana',
     value: 1.0, // 100% of max
     icon: '🔵+'
@@ -83,7 +83,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Ultra Stamina Potion',
     description: 'Restores 100% of your maximum stamina',
     goldCost: 150,
-    type: 'potion' as ItemType,
+    type: 'potion',
     useEffect: 'stamina',
     value: 1.0, // 100% of max
     icon: '⚡+'
@@ -93,7 +93,7 @@ const UPDATED_STORE_ITEMS: StoreItem[] = [
     name: 'Ultra Revival Elixir',
     description: 'Automatically revives you with 100% of all stats if you fall in battle',
     goldCost: 500,
-    type: 'elixir' as ItemType,
+    type: 'elixir',
     useEffect: 'revival',
     value: 1.0, // 100% of max
     icon: '✨+'

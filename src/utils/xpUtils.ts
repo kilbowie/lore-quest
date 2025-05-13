@@ -1,4 +1,4 @@
-import { User, Quest, Achievement, ItemType, EquippableItem, InventoryItem, EquipmentStats } from "../types";
+import { User, Quest, Achievement, ItemType, EquippableItem, InventoryItem, EquipmentStats, EquipmentSlot, UserAchievement } from "../types";
 import { getUsers, updateUser } from "./authUtils";
 import { toast } from "@/components/ui/sonner";
 
@@ -34,7 +34,7 @@ export const addExperience = (user: User, amount: number, reason?: string): User
     // Add a leveling reward item
     const rewardUpdatedUser = addItemToInventory(
       updatedUser,
-      "chest",
+      "other", // Changed from "chest" to "other" to match the allowed ItemType values
       `Level ${newLevel} Achievement Chest`,
       "A special reward for reaching level " + newLevel,
       1,
@@ -264,6 +264,7 @@ export const addWalkingDistance = (user: User, distanceKm: number): User => {
 export const checkRegeneration = (user: User): User => {
   if (!user) return user;
   
+  // Add lastRegenCheck property to User type if it's missing
   const lastChecked = user.lastRegenCheck ? new Date(user.lastRegenCheck) : new Date();
   const now = new Date();
   const diffMinutes = (now.getTime() - lastChecked.getTime()) / (1000 * 60);
@@ -389,7 +390,12 @@ export const upgradeStatWithRune = (user: User, stat: 'strength' | 'intelligence
 
 // Achievement tracking functions
 export const trackAchievement = (user: User, achievementId: string): User => {
-  if (!user || !user.trackedAchievements) return user;
+  if (!user) return user;
+  
+  // Ensure the trackedAchievements array exists
+  if (!user.trackedAchievements) {
+    user = { ...user, trackedAchievements: [] };
+  }
   
   // Only allow 3 tracked achievements max
   if (user.trackedAchievements.length >= 3) {
@@ -414,7 +420,12 @@ export const trackAchievement = (user: User, achievementId: string): User => {
 };
 
 export const untrackAchievement = (user: User, achievementId: string): User => {
-  if (!user || !user.trackedAchievements) return user;
+  if (!user) return user;
+  
+  // Ensure the trackedAchievements array exists
+  if (!user.trackedAchievements) {
+    return user;
+  }
   
   const updatedUser = {
     ...user,
@@ -455,9 +466,11 @@ export const initializeUserStats = (user: User): User => {
 
 // Add a new quest to the user's active quests
 export const addQuest = (user: User, quest: Quest): User => {
+  // Check if user.activeQuests is a string array or Quest array
+  // If it's a Quest array, we need to extract just the IDs
   const updatedUser = {
     ...user,
-    activeQuests: [...user.activeQuests, quest]
+    activeQuests: [...(user.activeQuests || []), quest.id]
   };
   
   updateUser(updatedUser);
@@ -467,7 +480,7 @@ export const addQuest = (user: User, quest: Quest): User => {
 // Remove a quest from the user's active quests and add it to completed quests
 export const completeQuest = (user: User, questId: string, awardToast: boolean = true): User => {
   // Find the quest in the activeQuests array
-  const questToRemoveIndex = user.activeQuests.findIndex(quest => quest.id === questId);
+  const questToRemoveIndex = user.activeQuests.findIndex(quest => quest === questId);
   
   if (questToRemoveIndex === -1) {
     console.warn(`Quest with ID ${questId} not found in active quests.`);
@@ -476,11 +489,19 @@ export const completeQuest = (user: User, questId: string, awardToast: boolean =
   
   // Create a copy of the activeQuests array and remove the quest
   const updatedActiveQuests = [...user.activeQuests];
-  const questToRemove = updatedActiveQuests.splice(questToRemoveIndex, 1)[0];
+  const questIdToRemove = updatedActiveQuests.splice(questToRemoveIndex, 1)[0];
+  
+  // Get quest details from somewhere (you might need to implement this)
+  const questDetails = getQuestDetails(questIdToRemove);
+  
+  if (!questDetails) {
+    console.warn(`Quest details for ID ${questId} not found.`);
+    return user;
+  }
   
   // Create a copy of the completedQuests array and add the quest
   const updatedCompletedQuests = user.completedQuests ? [...user.completedQuests] : [];
-  updatedCompletedQuests.push(questToRemove);
+  updatedCompletedQuests.push(questIdToRemove);
   
   // Update user stats
   let updatedUser = {
@@ -490,19 +511,19 @@ export const completeQuest = (user: User, questId: string, awardToast: boolean =
     stats: {
       ...user.stats,
       questsCompleted: (user.stats?.questsCompleted || 0) + 1,
-      questXpEarned: (user.stats?.questXpEarned || 0) + questToRemove.xpReward,
-      questGoldEarned: (user.stats?.questGoldEarned || 0) + questToRemove.goldReward
+      questXpEarned: (user.stats?.questXpEarned || 0) + questDetails.xpReward,
+      questGoldEarned: (user.stats?.questGoldEarned || 0) + (questDetails.goldReward || 0)
     }
   };
   
   // Add quest rewards
-  updatedUser = addExperience(updatedUser, questToRemove.xpReward, `Completed Quest: ${questToRemove.title}`);
-  updatedUser.gold = (updatedUser.gold || 0) + questToRemove.goldReward;
+  updatedUser = addExperience(updatedUser, questDetails.xpReward, `Completed Quest: ${questDetails.name}`);
+  updatedUser.gold = (updatedUser.gold || 0) + (questDetails.goldReward || 0);
   
   // Show toast for quest completion
   if (awardToast) {
-    toast.success(`Quest Completed: ${questToRemove.title}`, {
-      description: questToRemove.description
+    toast.success(`Quest Completed: ${questDetails.name}`, {
+      description: questDetails.description
     });
   }
   
@@ -510,11 +531,25 @@ export const completeQuest = (user: User, questId: string, awardToast: boolean =
   return updatedUser;
 };
 
+// Helper function to get quest details from a quest ID
+const getQuestDetails = (questId: string): Quest | null => {
+  // This is a placeholder. You should implement this to retrieve quest details
+  // from your database or local storage.
+  return null;
+};
+
 // Add a new achievement to the user's achievements
 export const addAchievement = (user: User, achievement: Achievement): User => {
+  const userAchievement: UserAchievement = {
+    achievementId: achievement.id,
+    completed: true,
+    progress: 100,
+    isTracked: false
+  };
+  
   const updatedUser = {
     ...user,
-    achievements: [...user.achievements, achievement],
+    achievements: [...(user.achievements || []), userAchievement],
     stats: {
       ...user.stats,
       achievementsUnlocked: (user.stats?.achievementsUnlocked || 0) + 1
@@ -527,21 +562,21 @@ export const addAchievement = (user: User, achievement: Achievement): User => {
 
 // Check if a user has completed a specific quest
 export const hasCompletedQuest = (user: User, questId: string): boolean => {
-  return user.completedQuests.some(quest => quest.id === questId);
+  return (user.completedQuests || []).some(qId => qId === questId);
 };
 
 // Check if a user has unlocked a specific achievement
 export const hasUnlockedAchievement = (user: User, achievementId: string): boolean => {
-  return user.achievements.some(achievement => achievement.achievementId === achievementId);
+  return (user.achievements || []).some(achievement => achievement.achievementId === achievementId);
 };
 
 // Generate daily quests for the user
 export const generateDailyQuests = (user: User): User => {
   // Define possible daily quests
-  const possibleQuests: Quest[] = [
+  const possibleQuests = [
     {
       id: "daily-quest-1",
-      title: "Explore Local Areas",
+      name: "Explore Local Areas",
       description: "Discover 3 new locations in your vicinity.",
       xpReward: 150,
       goldReward: 75,
@@ -551,7 +586,7 @@ export const generateDailyQuests = (user: User): User => {
     },
     {
       id: "daily-quest-2",
-      title: "Take a Morning Stroll",
+      name: "Take a Morning Stroll",
       description: "Walk a distance of 2km before noon.",
       xpReward: 120,
       goldReward: 60,
@@ -561,7 +596,7 @@ export const generateDailyQuests = (user: User): User => {
     },
     {
       id: "daily-quest-3",
-      title: "Visit a Landmark",
+      name: "Visit a Landmark",
       description: "Visit a historical landmark or monument.",
       xpReward: 180,
       goldReward: 90,
@@ -592,10 +627,10 @@ export const generateDailyQuests = (user: User): User => {
 // Generate weekly quests for the user
 export const generateWeeklyQuests = (user: User): User => {
   // Define possible weekly quests
-  const possibleQuests: Quest[] = [
+  const possibleQuests = [
     {
       id: "weekly-quest-1",
-      title: "Explore Different Realms",
+      name: "Explore Different Realms",
       description: "Discover locations in 3 different realms (countries).",
       xpReward: 500,
       goldReward: 250,
@@ -605,7 +640,7 @@ export const generateWeeklyQuests = (user: User): User => {
     },
     {
       id: "weekly-quest-2",
-      title: "Long Distance Journey",
+      name: "Long Distance Journey",
       description: "Travel a total distance of 20km in a week.",
       xpReward: 400,
       goldReward: 200,
@@ -615,7 +650,7 @@ export const generateWeeklyQuests = (user: User): User => {
     },
     {
       id: "weekly-quest-3",
-      title: "Visit Multiple Landmarks",
+      name: "Visit Multiple Landmarks",
       description: "Visit 5 different historical landmarks or monuments.",
       xpReward: 600,
       goldReward: 300,
@@ -646,10 +681,10 @@ export const generateWeeklyQuests = (user: User): User => {
 // Generate monthly quests for the user
 export const generateMonthlyQuests = (user: User): User => {
   // Define possible monthly quests
-  const possibleQuests: Quest[] = [
+  const possibleQuests = [
     {
       id: "monthly-quest-1",
-      title: "Grand Explorer",
+      name: "Grand Explorer",
       description: "Discover 15 new locations this month.",
       xpReward: 1500,
       goldReward: 750,
@@ -659,7 +694,7 @@ export const generateMonthlyQuests = (user: User): User => {
     },
     {
       id: "monthly-quest-2",
-      title: "Marathon Walker",
+      name: "Marathon Walker",
       description: "Walk a total distance of 100km this month.",
       xpReward: 1200,
       goldReward: 600,
@@ -669,7 +704,7 @@ export const generateMonthlyQuests = (user: User): User => {
     },
     {
       id: "monthly-quest-3",
-      title: "Historical Enthusiast",
+      name: "Historical Enthusiast",
       description: "Visit 20 different historical landmarks or monuments this month.",
       xpReward: 1800,
       goldReward: 900,
@@ -770,9 +805,9 @@ export const generateTimeBasedQuests = (user: User): User => {
 // Add email verification quest
 export const addVerificationQuest = (user: User): User => {
   // Define verification quest
-  const verificationQuest: Quest = {
+  const verificationQuest = {
     id: "email-verification-quest",
-    title: "Verify Your Email",
+    name: "Verify Your Email",
     description: "Verify your email address to unlock exclusive rewards.",
     xpReward: 250,
     goldReward: 100,
@@ -782,9 +817,9 @@ export const addVerificationQuest = (user: User): User => {
   };
   
   // Define verification achievement
-  const verificationAchievement: Achievement = {
-    achievementId: "email-verification",
-    title: "Email Verified",
+  const verificationAchievement = {
+    id: "email-verification", // Changed from achievementId to id
+    name: "Email Verified", // Changed from title to name
     description: "Successfully verified your email address.",
     xpReward: 500,
     icon: "email"
@@ -808,6 +843,178 @@ export const completeVerificationQuest = (user: User): User => {
   toast.success("Email Verified!", {
     description: "You have successfully verified your email address and unlocked exclusive rewards."
   });
+  
+  return updatedUser;
+};
+
+// Equip an item
+export const equipItem = (user: User, itemId: string): User => {
+  if (!user || !user.inventory) return user;
+  
+  // Find the item in the inventory
+  const itemIndex = user.inventory.findIndex(item => item.id === itemId);
+  if (itemIndex === -1) return user;
+  
+  const item = user.inventory[itemIndex];
+  
+  // Check if the item is equippable
+  if (!item.isEquippable || !item.equipmentStats) {
+    toast.error("This item cannot be equipped");
+    return user;
+  }
+  
+  // Create a copy of the user's equipment or initialize if it doesn't exist
+  const updatedEquipment = user.equipment ? { ...user.equipment } : {};
+  
+  // Get the slot this item belongs to
+  const slot = item.equipmentStats.slot;
+  
+  // Check if there's already an item in this slot
+  const currentItem = updatedEquipment[slot];
+  
+  // Create updated user object
+  let updatedUser = { ...user };
+  
+  // If there's already an item equipped in this slot, put it back in the inventory
+  if (currentItem) {
+    // Add the current item back to inventory
+    updatedUser = addItemToInventory(
+      updatedUser,
+      currentItem.type,
+      currentItem.name,
+      currentItem.description || "",
+      1,
+      currentItem.icon,
+      currentItem.useEffect,
+      currentItem.value,
+      true,
+      currentItem.equipmentStats
+    );
+  }
+  
+  // Remove one of the equipped item from inventory
+  const updatedInventory = [...updatedUser.inventory];
+  if (item.quantity <= 1) {
+    // Remove item entirely if only 1 remains
+    updatedInventory.splice(itemIndex, 1);
+  } else {
+    // Decrement quantity if multiple exist
+    updatedInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
+  }
+  
+  // Equip the item
+  updatedEquipment[slot] = item;
+  
+  // Update user object
+  updatedUser = {
+    ...updatedUser,
+    inventory: updatedInventory,
+    equipment: updatedEquipment
+  };
+  
+  // Recalculate armor and other stats based on equipped items
+  updatedUser = recalculateStats(updatedUser);
+  
+  // Show toast for equipped item
+  toast.success(`Equipped ${item.name}`, {
+    description: `${item.name} has been equipped in the ${slot} slot.`
+  });
+  
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+// Unequip an item
+export const unequipItem = (user: User, slot: EquipmentSlot): User => {
+  if (!user || !user.equipment) return user;
+  
+  // Get the item in the slot
+  const item = user.equipment[slot];
+  if (!item) return user;
+  
+  // Create updated user object
+  let updatedUser = { ...user };
+  
+  // Add the item back to inventory
+  updatedUser = addItemToInventory(
+    updatedUser,
+    item.type,
+    item.name,
+    item.description || "",
+    1,
+    item.icon,
+    item.useEffect,
+    item.value,
+    true,
+    item.equipmentStats
+  );
+  
+  // Create a copy of the equipment and remove the item from the slot
+  const updatedEquipment = { ...updatedUser.equipment };
+  delete updatedEquipment[slot];
+  
+  // Update user object
+  updatedUser = {
+    ...updatedUser,
+    equipment: updatedEquipment
+  };
+  
+  // Recalculate armor and other stats based on equipped items
+  updatedUser = recalculateStats(updatedUser);
+  
+  // Show toast for unequipped item
+  toast.success(`Unequipped ${item.name}`, {
+    description: `${item.name} has been removed from the ${slot} slot.`
+  });
+  
+  updateUser(updatedUser);
+  return updatedUser;
+};
+
+// Recalculate user stats based on equipment
+const recalculateStats = (user: User): User => {
+  if (!user || !user.equipment) return user;
+  
+  // Start with base stats
+  let armor = 0;
+  let bonusStrength = 0;
+  let bonusIntelligence = 0;
+  let bonusDexterity = 0;
+  
+  // Calculate equipment bonuses
+  Object.values(user.equipment).forEach(item => {
+    if (!item || !item.equipmentStats) return;
+    
+    // Add armor
+    if (item.equipmentStats.armor) {
+      armor += item.equipmentStats.armor;
+    }
+    
+    // Add stat bonuses
+    if (item.equipmentStats.statBonuses) {
+      item.equipmentStats.statBonuses.forEach(bonus => {
+        if (bonus.attribute === 'strength') {
+          bonusStrength += bonus.value;
+        } else if (bonus.attribute === 'intelligence') {
+          bonusIntelligence += bonus.value;
+        } else if (bonus.attribute === 'dexterity') {
+          bonusDexterity += bonus.value;
+        }
+      });
+    }
+  });
+  
+  // Update user stats
+  const updatedUser = {
+    ...user,
+    armor,
+    stats: {
+      ...user.stats,
+      totalStrength: (user.stats?.strength || 0) + bonusStrength,
+      totalIntelligence: (user.stats?.intelligence || 0) + bonusIntelligence,
+      totalDexterity: (user.stats?.dexterity || 0) + bonusDexterity
+    }
+  };
   
   return updatedUser;
 };

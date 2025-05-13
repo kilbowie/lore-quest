@@ -1,4 +1,3 @@
-
 export interface Location {
   id: string;
   name: string;           // City name (Territory)
@@ -56,7 +55,8 @@ export interface User {
   stamina: number; // Current stamina points
   maxStamina: number; // Maximum stamina points
   isDead: boolean; // Is player dead
-  lastRegenerationTime?: Date; // Last time health/mana/stamina regenerated
+  lastRegenCheck?: string; // Last time health/mana/stamina regenerated
+  trackedAchievements: string[]; // IDs of achievements being tracked
   // New equipment slots
   equipment: Equipment;
   // New armor stat
@@ -226,7 +226,7 @@ export interface EquippableItem extends InventoryItem {
 
 export interface Achievement {
   id: string;
-  type: 'territory' | 'realm' | 'continent' | 'meta' | 'tutorial' | 'verification';
+  type?: 'territory' | 'realm' | 'continent' | 'meta' | 'tutorial' | 'verification';
   name: string;
   description: string;
   targetId?: string; // ID of the location, realm or continent
@@ -270,9 +270,11 @@ export interface Quest {
     quantity: number;
     equipmentStats?: EquipmentStats;
   };
-  completed: boolean;
-  progress: number;
+  completed?: boolean;
+  progress?: number;
   expiresAt?: Date; // For time-limited quests (daily, weekly, monthly)
+  requiredLevel?: number;
+  tasks?: string[];
 }
 
 // Constants for leveling system

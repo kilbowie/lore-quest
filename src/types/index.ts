@@ -56,6 +56,7 @@ export interface User {
   maxStamina: number; // Maximum stamina points
   isDead: boolean; // Is player dead
   lastRegenCheck?: string; // Last time health/mana/stamina regenerated
+  lastRegenerationTime: Date; // Last regeneration time
   trackedAchievements: string[]; // IDs of achievements being tracked
   // New equipment slots
   equipment: Equipment;

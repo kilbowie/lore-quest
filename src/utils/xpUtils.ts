@@ -573,7 +573,7 @@ export const hasUnlockedAchievement = (user: User, achievementId: string): boole
 // Generate daily quests for the user
 export const generateDailyQuests = (user: User): User => {
   // Define possible daily quests
-  const possibleQuests = [
+  const possibleQuests: Quest[] = [
     {
       id: "daily-quest-1",
       name: "Explore Local Areas",
@@ -627,7 +627,7 @@ export const generateDailyQuests = (user: User): User => {
 // Generate weekly quests for the user
 export const generateWeeklyQuests = (user: User): User => {
   // Define possible weekly quests
-  const possibleQuests = [
+  const possibleQuests: Quest[] = [
     {
       id: "weekly-quest-1",
       name: "Explore Different Realms",
@@ -902,8 +902,9 @@ export const equipItem = (user: User, itemId: string): User => {
     updatedInventory[itemIndex] = { ...item, quantity: item.quantity - 1 };
   }
   
-  // Equip the item
-  updatedEquipment[slot] = item;
+  // Equip the item - ensuring it's correctly typed as EquippableItem
+  const equippableItem = item as EquippableItem;
+  updatedEquipment[slot] = equippableItem;
   
   // Update user object
   updatedUser = {

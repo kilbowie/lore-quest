@@ -15,6 +15,7 @@ import PlayerStatus from './PlayerStatus';
 import InventoryIcon from './InventoryIcon';
 import SettingsDialog from './dialogs/SettingsDialog';
 import DeleteAccountDialog from './dialogs/DeleteAccountDialog';
+import { InventoryItem } from '../types';
 
 interface UserProfileProps {
   onToggleDashboard: () => void;
@@ -35,12 +36,21 @@ const UserProfile: React.FC<UserProfileProps> = ({ onToggleDashboard }) => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Create a default item for the InventoryIcon component
+  const defaultItem: InventoryItem = {
+    id: 'inventory-icon',
+    name: 'Inventory',
+    type: 'other',
+    quantity: 1,
+    icon: '🎒'
+  };
   
   return (
     <div className="flex items-center">
       <div className="flex items-center gap-2 mr-4">
         <PlayerStatus />
-        <InventoryIcon />
+        <InventoryIcon item={defaultItem} />
       </div>
       
       <DropdownMenu>

@@ -1,4 +1,4 @@
-import { User, Quest, Achievement, ItemType, EquippableItem, InventoryItem, EquipmentStats, EquipmentSlot, UserAchievement } from "../types";
+import { User, Quest, Achievement, ItemType, EquippableItem, InventoryItem, EquipmentStats, EquipmentSlot, UserAchievement, QuestType } from "../types";
 import { getUsers, updateUser } from "./authUtils";
 import { toast } from "@/components/ui/sonner";
 

@@ -2,16 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { InventoryItem } from '@/types';
-
-interface InventoryContextType {
-  inventory: InventoryItem[];
-  addItem: (item: InventoryItem) => void;
-  removeItem: (itemId: string, quantity?: number) => void;
-  useItem: (itemId: string) => void;
-  equipItem: (itemId: string) => void;
-  unequipItem: (slot: string) => void;
-  isLoading: boolean;
-}
+import { EquippableItem, InventoryContextType } from '../types';
 
 const defaultInventoryContext: InventoryContextType = {
   inventory: [],
@@ -123,11 +114,15 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const equipItem = (itemId: string) => {
     if (!user) return;
     
-    const item = inventory.find(i => i.id === itemId && i.isEquippable);
+    const item = inventory.find(i => i.id === itemId && i.isEquippable === true);
+    
     if (!item || !item.equipmentStats) return;
     
+    // Use type guard to ensure we have the right type
+    const equippableItem = item as EquippableItem;
+    
     // Get the slot this item goes into
-    const slot = item.equipmentStats.slot;
+    const slot = equippableItem.equipmentStats.slot;
     
     // Create a copy of the current equipment
     const updatedEquipment = { ...user.equipment };
@@ -139,7 +134,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
     
     // Put the new item in the equipment slot
-    updatedEquipment[slot] = item;
+    updatedEquipment[slot] = equippableItem;
     
     // Remove the equipped item from inventory
     removeItem(itemId);

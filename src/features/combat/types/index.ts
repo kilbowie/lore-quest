@@ -29,4 +29,5 @@ export interface Enemy {
 
 export interface BattleEncounterProps {
   onClose?: () => void;
+  onComplete?: () => void;
 }

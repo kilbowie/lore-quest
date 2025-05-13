@@ -1,10 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Quest, QuestType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { generateTimeBasedQuests, getTimeBasedQuests } from '@/utils/xpUtils';
-import { addExperience } from '@/utils/xpUtils';
+import { generateTimeBasedQuests, getTimeBasedQuests, addExperience } from '@/utils/xpUtils';
 import { toast } from '@/components/ui/sonner';
 
 interface QuestsContextType {

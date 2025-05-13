@@ -267,7 +267,7 @@ export interface Quest {
   id: string;
   name: string;
   description: string;
-  type: 'discovery' | 'collection' | 'exploration' | 'tutorial' | 'daily' | 'weekly' | 'monthly' | 'verification';
+  type: QuestType; // Quest types
   targetId?: string;
   targetCount?: number;
   xpReward: number;

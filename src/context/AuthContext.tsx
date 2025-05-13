@@ -16,7 +16,9 @@ interface AuthContextType {
   login: (usernameOrEmail: string, password: string) => Promise<User | null>;
   logout: () => void;
   register: (name: string, email: string, username: string, password: string) => Promise<User | null>;
+  signup: (name: string, email: string, username: string, password: string) => Promise<User | null>; // Alias for register
   updateUser: (updatedUser: User) => void;
+  updateCurrentUser: (updatedUser: User) => void; // Alias for updateUser
   setUser: (user: User) => void; // Added setter
 }
 
@@ -28,7 +30,9 @@ export const AuthContext = createContext<AuthContextType>({
   login: async () => null,
   logout: () => {},
   register: async () => null,
+  signup: async () => null, // Added alias
   updateUser: () => {},
+  updateCurrentUser: () => {}, // Added alias
   setUser: () => {} // Added setter default
 });
 
@@ -101,7 +105,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         register,
-        updateUser
+        signup: register, // Alias for register
+        updateUser,
+        updateCurrentUser: updateUser // Alias for updateUser
       }}
     >
       {children}

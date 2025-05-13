@@ -16,8 +16,20 @@ interface LocationData {
   timestamp: number | null;
 }
 
-const WalkingTracker: React.FC = () => {
-  const { user, updateUser } = useAuth();
+interface WalkingTrackerProps {
+  showDetails?: boolean;
+  onWalkingProgress?: (distanceAdded: number) => void;
+  tutorialMode?: boolean;
+  tutorialTarget?: number;
+}
+
+const WalkingTracker: React.FC<WalkingTrackerProps> = ({
+  showDetails = false,
+  onWalkingProgress,
+  tutorialMode = false,
+  tutorialTarget = 0
+}) => {
+  const { user, updateCurrentUser } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [walkingData, setWalkingData] = useState<WalkingData | null>(null);
   const [lastPosition, setLastPosition] = useState<LocationData>({
@@ -57,7 +69,7 @@ const WalkingTracker: React.FC = () => {
           if (Math.floor(totalDistanceKm) < Math.floor(totalDistanceKm + distance)) {
             if (user) {
               const { updatedUser, xpAwarded } = awardWalkingXp(user, walkingXpAwardInterval);
-              updateUser(updatedUser);
+              updateCurrentUser(updatedUser);
               setEarnedXP(xpAwarded);
               setLastXpAwardDate(new Date().toISOString().split('T')[0]);
             }
@@ -81,7 +93,7 @@ const WalkingTracker: React.FC = () => {
     } else {
       toast.error('Geolocation is not supported by your browser.');
     }
-  }, [lastPosition, totalDistanceKm, updateUser, user, walkingXpAwardInterval]);
+  }, [lastPosition, totalDistanceKm, updateCurrentUser, user, walkingXpAwardInterval]);
 
   const stopTracking = () => {
     setIsTracking(false);

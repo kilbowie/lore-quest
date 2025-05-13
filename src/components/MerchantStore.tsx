@@ -121,10 +121,10 @@ const MerchantStore: React.FC<MerchantStoreProps> = ({ open, onOpenChange }) => 
     const success = updatedUser !== user;
     
     if (success) {
-      // Add item to inventory
+      // Add item to inventory with appropriate type handling
       const userWithItem = addItemToInventory(
         updatedUser,
-        item.type,
+        item.type as ItemType,
         item.name,
         item.description,
         quantity,

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/Progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sword, Shield, Potion, Heart, Bolt, ArrowRight } from 'lucide-react';
+import { Sword, Shield, Heart, Bolt, ArrowRight } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import {
   User,

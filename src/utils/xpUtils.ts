@@ -260,6 +260,29 @@ export const addWalkingDistance = (user: User, distanceKm: number): User => {
   return addExperience(updatedUser, xpEarned, `Walking ${distanceKm.toFixed(2)} km`);
 };
 
+// Award XP for walking
+export const awardWalkingXp = (user: User, distanceKm: number): { updatedUser: User; xpAwarded: number } => {
+  if (!user) return { updatedUser: user, xpAwarded: 0 };
+  
+  // Calculate XP (10 XP per km)
+  const xpAwarded = Math.floor(distanceKm * 10);
+  
+  // Add XP to user
+  const updatedUser = {
+    ...user,
+    stats: {
+      ...user.stats,
+      walkingXpEarned: (user.stats?.walkingXpEarned || 0) + xpAwarded,
+      distanceTravelled: (user.stats?.distanceTravelled || 0) + distanceKm
+    }
+  };
+  
+  // Add the experience
+  const userWithXp = addExperience(updatedUser, xpAwarded, `Walking ${distanceKm.toFixed(2)} km`);
+  
+  return { updatedUser: userWithXp, xpAwarded };
+};
+
 // Check and regenerate health, mana, stamina
 export const checkRegeneration = (user: User): User => {
   if (!user) return user;
@@ -580,7 +603,7 @@ export const generateDailyQuests = (user: User): User => {
       description: "Discover 3 new locations in your vicinity.",
       xpReward: 150,
       goldReward: 75,
-      type: "daily",
+      type: "daily" as QuestType,
       requiredLevel: 1,
       tasks: ["Discover 3 new locations"]
     },
@@ -590,7 +613,7 @@ export const generateDailyQuests = (user: User): User => {
       description: "Walk a distance of 2km before noon.",
       xpReward: 120,
       goldReward: 60,
-      type: "daily",
+      type: "daily" as QuestType,
       requiredLevel: 1,
       tasks: ["Walk 2km before noon"]
     },
@@ -600,7 +623,7 @@ export const generateDailyQuests = (user: User): User => {
       description: "Visit a historical landmark or monument.",
       xpReward: 180,
       goldReward: 90,
-      type: "daily",
+      type: "daily" as QuestType,
       requiredLevel: 1,
       tasks: ["Visit a historical landmark"]
     }
@@ -634,7 +657,7 @@ export const generateWeeklyQuests = (user: User): User => {
       description: "Discover locations in 3 different realms (countries).",
       xpReward: 500,
       goldReward: 250,
-      type: "weekly",
+      type: "weekly" as QuestType,
       requiredLevel: 5,
       tasks: ["Discover locations in 3 different realms"]
     },
@@ -644,7 +667,7 @@ export const generateWeeklyQuests = (user: User): User => {
       description: "Travel a total distance of 20km in a week.",
       xpReward: 400,
       goldReward: 200,
-      type: "weekly",
+      type: "weekly" as QuestType,
       requiredLevel: 5,
       tasks: ["Travel 20km in a week"]
     },
@@ -654,7 +677,7 @@ export const generateWeeklyQuests = (user: User): User => {
       description: "Visit 5 different historical landmarks or monuments.",
       xpReward: 600,
       goldReward: 300,
-      type: "weekly",
+      type: "weekly" as QuestType,
       requiredLevel: 5,
       tasks: ["Visit 5 different historical landmarks"]
     }
@@ -688,7 +711,7 @@ export const generateMonthlyQuests = (user: User): User => {
       description: "Discover 15 new locations this month.",
       xpReward: 1500,
       goldReward: 750,
-      type: "monthly",
+      type: "monthly" as QuestType,
       requiredLevel: 10,
       tasks: ["Discover 15 new locations"]
     },
@@ -698,7 +721,7 @@ export const generateMonthlyQuests = (user: User): User => {
       description: "Walk a total distance of 100km this month.",
       xpReward: 1200,
       goldReward: 600,
-      type: "monthly",
+      type: "monthly" as QuestType,
       requiredLevel: 10,
       tasks: ["Walk 100km this month"]
     },
@@ -708,7 +731,7 @@ export const generateMonthlyQuests = (user: User): User => {
       description: "Visit 20 different historical landmarks or monuments this month.",
       xpReward: 1800,
       goldReward: 900,
-      type: "monthly",
+      type: "monthly" as QuestType,
       requiredLevel: 10,
       tasks: ["Visit 20 different historical landmarks"]
     }
@@ -811,7 +834,7 @@ export const addVerificationQuest = (user: User): User => {
     description: "Verify your email address to unlock exclusive rewards.",
     xpReward: 250,
     goldReward: 100,
-    type: "verification",
+    type: "verification" as QuestType,
     requiredLevel: 1,
     tasks: ["Verify your email address"]
   };
@@ -903,7 +926,7 @@ export const equipItem = (user: User, itemId: string): User => {
   }
   
   // Equip the item - ensuring it's correctly typed as EquippableItem
-  const equippableItem = item as EquippableItem;
+  const equippableItem = {...item, isEquippable: true as const};
   updatedEquipment[slot] = equippableItem;
   
   // Update user object

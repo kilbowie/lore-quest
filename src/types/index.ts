@@ -742,3 +742,8 @@ export interface CombatLogEntry {
 
 // Combat actions
 export type CombatAction = 'attack' | 'defend' | 'item' | 'flee';
+
+// Add UserWithPassword interface
+export interface UserWithPassword extends User {
+  password: string;
+}

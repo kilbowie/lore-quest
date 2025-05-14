@@ -1,5 +1,4 @@
-
-import { User } from "@/types";
+import { User, UserWithPassword, PlayerClass } from "@/types";
 import { db } from "./db";
 import { nanoid } from "nanoid";
 import { hash, compare } from "bcryptjs";
@@ -167,7 +166,7 @@ export const completeTutorial = (userId: string): void => {
   console.log(`Tutorial completed for user ${userId}`);
 };
 
-export const setUserClass = (userId: string, playerClass: string): User => {
+export const setUserClass = (userId: string, playerClass: PlayerClass): User => {
   // Mock implementation
   console.log(`User ${userId} class set to ${playerClass}`);
   

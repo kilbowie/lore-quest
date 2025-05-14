@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,12 @@ import Inventory from './Inventory';
 import { useItem } from '../utils/combatEngine';
 import { toast } from '@/components/ui/sonner';
 
-const UserDashboard: React.FC = () => {
+// Add proper props interface
+interface UserDashboardProps {
+  onClose: () => void;
+}
+
+const UserDashboard: React.FC<UserDashboardProps> = ({ onClose }) => {
   const { user, updateCurrentUser } = useAuth();
   const [showInventory, setShowInventory] = useState(false);
   

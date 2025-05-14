@@ -1,4 +1,3 @@
-
 import { User, PlayerClass } from "@/types";
 import { db } from "./db";
 import { nanoid } from "nanoid";
@@ -113,7 +112,7 @@ export const createUser = async (userData: { name?: string; email?: string; user
   return userWithoutPassword;
 };
 
-// Add missing auth functions required by components
+// Fix the loginUser function to properly handle the user lookup
 export const loginUser = async (usernameOrEmail: string, password: string): Promise<User | null> => {
   // Try to find user by email
   let user = await getUserByEmail(usernameOrEmail);
@@ -123,11 +122,11 @@ export const loginUser = async (usernameOrEmail: string, password: string): Prom
     user = await getUserByUsername(usernameOrEmail);
   }
 
-  // If user not found or password doesn't match, return null
+  // If user not found, return null
   if (!user) return null;
   
-  // Get full user with password from our mock database
-  const userWithPassword = Object.values(db.user).find(u => u.id === user?.id) as UserWithPassword | undefined;
+  // Find the user with password in our mock database
+  const userWithPassword = Object.values(db.users).find(u => u.id === user?.id);
   if (!userWithPassword) return null;
   
   const isPasswordValid = await compare(password, userWithPassword.password);
@@ -223,4 +222,3 @@ export const setUserClass = (userId: string, playerClass: PlayerClass): User => 
     dailyQuests: []
   };
 };
-

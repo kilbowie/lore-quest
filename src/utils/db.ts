@@ -39,5 +39,6 @@ export const db = {
       users[data.id] = data;
       return { ...data, password: undefined } as User;
     }
-  }
+  },
+  users // Export the users object directly for access in loginUser
 };

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export interface WalkingTrackerProps {
   onClose?: () => void;
@@ -22,10 +23,12 @@ const WalkingTracker: React.FC<WalkingTrackerProps> = ({
   onWalkingProgress
 }) => {
   const [distance, setDistance] = useState<number>(0);
+  const { user } = useAuth();
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
 
-  // Simulate walking progress - this would be replaced with actual step tracking
+  // Simulate walking progress - for testing purposes
   useEffect(() => {
-    if (!tutorialMode) return;
+    if (!isSimulating) return;
     
     const interval = setInterval(() => {
       const distanceAdded = Math.random() * 5 + 1;
@@ -39,7 +42,12 @@ const WalkingTracker: React.FC<WalkingTrackerProps> = ({
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [tutorialMode, onWalkingProgress]);
+  }, [isSimulating, onWalkingProgress]);
+
+  // Toggle simulation
+  const toggleSimulation = () => {
+    setIsSimulating(prev => !prev);
+  };
 
   // Update the UI
   return (
@@ -68,6 +76,16 @@ const WalkingTracker: React.FC<WalkingTrackerProps> = ({
         <p className="text-xs text-zinc-400">
           Walk at least {tutorialMode ? tutorialTarget : 100} meters to earn rewards
         </p>
+        
+        {/* Debug/Developer option to simulate walking */}
+        <Button 
+          variant={isSimulating ? "destructive" : "outline"} 
+          size="sm" 
+          onClick={toggleSimulation}
+          className="w-full mt-2"
+        >
+          {isSimulating ? "Stop Simulation" : "Simulate Walking"}
+        </Button>
         
         {showDetails && (
           <div className="flex gap-2 pt-2">

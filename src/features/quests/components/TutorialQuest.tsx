@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, HelpCircle, MapPin } from 'lucide-react';
+import { CheckCircle2, HelpCircle, MapPin, X } from 'lucide-react';
 import {
   TutorialQuest as TutorialQuestType,
   TutorialStep,
@@ -26,50 +27,75 @@ const TutorialQuest: React.FC = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [walkingProgress, setWalkingProgress] = useState(0);
-  const [tutorialMode, setTutorialMode] = useState(true);
+  const [tutorialMode, setTutorialMode] = useState(false);
   const [tutorialTarget, setTutorialTarget] = useState(0);
   const navigate = useNavigate();
 
+  // Initialize tutorial status
   useEffect(() => {
-    if (user && !user.tutorialCompleted) {
-      // Define the tutorial quest
-      const initialQuest: TutorialQuestType = {
-        id: 'starter-tutorial',
-        title: 'Welcome to LoreQuest!',
-        description: 'Learn the basics to start your adventure.',
-        steps: [
-          {
-            id: 'step-1',
-            title: 'Choose Your Class',
-            description: 'Select a class that suits your playstyle.',
-            completed: !!user.playerClass,
-            requirement: { type: 'class', value: '' }
-          },
-          {
-            id: 'step-2',
-            title: 'Embark on a Journey',
-            description: 'Walk a short distance to familiarize yourself with exploration.',
-            completed: walkingProgress >= 1,
-            requirement: { type: 'walk', value: 1 }
-          },
-          {
-            id: 'step-3',
-            title: 'Discover a Location',
-            description: 'Find a nearby location to expand your map.',
-            completed: user.discoveredLocations.length > 0,
-            requirement: { type: 'discover', value: 1 }
-          }
-        ],
-        xpReward: 200,
-        goldReward: 100
-      };
+    if (user) {
+      // Only show tutorial if not completed
+      if (!user.tutorialCompleted) {
+        setTutorialMode(true);
+        
+        // Define the tutorial quest
+        const initialQuest: TutorialQuestType = {
+          id: 'starter-tutorial',
+          title: 'Welcome to LoreQuest!',
+          description: 'Learn the basics to start your adventure.',
+          steps: [
+            {
+              id: 'step-1',
+              title: 'Choose Your Class',
+              description: 'Select a class that suits your playstyle.',
+              completed: !!user.playerClass,
+              requirement: { type: 'class', value: '' }
+            },
+            {
+              id: 'step-2',
+              title: 'Embark on a Journey',
+              description: 'Walk a short distance to familiarize yourself with exploration.',
+              completed: walkingProgress >= 1,
+              requirement: { type: 'walk', value: 1 }
+            },
+            {
+              id: 'step-3',
+              title: 'Discover a Location',
+              description: 'Find a nearby location to expand your map.',
+              completed: user.discoveredLocations.length > 0,
+              requirement: { type: 'discover', value: 1 }
+            }
+          ],
+          xpReward: 200,
+          goldReward: 100
+        };
 
-      setTutorialQuest(initialQuest);
-      setTutorialTarget(initialQuest.steps.filter(step => step.requirement?.type === 'walk')[0]?.requirement?.value as number || 1);
-    } else {
-      setTutorialMode(false);
+        setTutorialQuest(initialQuest);
+        setTutorialTarget(initialQuest.steps.filter(step => step.requirement?.type === 'walk')[0]?.requirement?.value as number || 1);
+        
+        // Initialize the current step based on what's already completed
+        if (user.playerClass) {
+          setCurrentStepIndex(1);
+        }
+      } else {
+        setTutorialMode(false);
+      }
     }
-  }, [user, walkingProgress]);
+  }, [user]);
+
+  // Update walking progress step when progress changes
+  useEffect(() => {
+    if (walkingProgress >= tutorialTarget && currentStepIndex === 1) {
+      markStepComplete(1);
+    }
+  }, [walkingProgress, tutorialTarget, currentStepIndex]);
+
+  // Update location discovery step when locations change
+  useEffect(() => {
+    if (user && user.discoveredLocations.length > 0 && currentStepIndex === 2) {
+      markStepComplete(2);
+    }
+  }, [user?.discoveredLocations, currentStepIndex]);
 
   const currentStep = tutorialQuest?.steps[currentStepIndex];
   const isQuestComplete = tutorialQuest?.steps.every(step => step.completed);
@@ -125,18 +151,6 @@ const TutorialQuest: React.FC = () => {
     setWalkingProgress(prevProgress => prevProgress + distanceAdded);
   };
 
-  useEffect(() => {
-    if (walkingProgress >= tutorialTarget && currentStepIndex === 1) {
-      markStepComplete(1);
-    }
-  }, [walkingProgress, tutorialTarget, currentStepIndex]);
-
-  useEffect(() => {
-    if (user && user.discoveredLocations.length > 0 && currentStepIndex === 2) {
-      markStepComplete(2);
-    }
-  }, [user?.discoveredLocations, currentStepIndex]);
-
   const markStepComplete = (stepIndex: number) => {
     if (!tutorialQuest) return;
 
@@ -155,6 +169,7 @@ const TutorialQuest: React.FC = () => {
     updatedUser = addItemToInventory(updatedUser, 'gold', 'Gold', 'Gold coins', tutorialQuest.goldReward);
 
     // Mark the tutorial as complete
+    updatedUser = { ...updatedUser, tutorialCompleted: true };
     completeTutorial(user.id);
 
     // Update the user
@@ -164,6 +179,11 @@ const TutorialQuest: React.FC = () => {
       description: "You have completed the tutorial and are now ready to explore the world!"
     });
     navigate('/');
+  };
+  
+  // Close tutorial
+  const handleCloseTutorial = () => {
+    setTutorialMode(false);
   };
 
   if (!user) {
@@ -175,7 +195,16 @@ const TutorialQuest: React.FC = () => {
   }
 
   return (
-    <Card className="bg-zinc-950/50 text-zinc-100">
+    <Card className="bg-zinc-950/50 text-zinc-100 relative">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute right-2 top-2 z-10"
+        onClick={handleCloseTutorial}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+      
       <CardHeader>
         <CardTitle className="flex items-center">
           <HelpCircle className="mr-2 h-4 w-4" /> Tutorial Quest

@@ -1,15 +1,12 @@
 
-import { InventoryItem } from '@/types';
+import { InventoryItem, EquipmentSlot } from '@/types';
 
 export interface EquippableItem extends InventoryItem {
-  isEquippable: true;
   equipmentStats: {
-    slot: string;
+    slot: EquipmentSlot;
     armor?: number;
-    statBonuses?: {
-      attribute: string;
-      value: number;
-    }[];
+    damage?: number;
+    effects?: string[];
   };
 }
 

@@ -1,10 +1,11 @@
-import { User, UserWithPassword, PlayerClass } from "@/types";
+
+import { User, PlayerClass } from "@/types";
 import { db } from "./db";
 import { nanoid } from "nanoid";
 import { hash, compare } from "bcryptjs";
 
 // Interface for user with password
-interface UserWithPassword extends User {
+export interface UserWithPassword extends User {
   password: string;
 }
 
@@ -222,3 +223,4 @@ export const setUserClass = (userId: string, playerClass: PlayerClass): User => 
     dailyQuests: []
   };
 };
+

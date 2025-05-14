@@ -1,6 +1,7 @@
 
 // This is a mock database implementation
-import { User, UserWithPassword } from "@/types";
+import { User } from "@/types";
+import { UserWithPassword } from "./authUtils";
 
 // In-memory storage
 const users: Record<string, UserWithPassword> = {};

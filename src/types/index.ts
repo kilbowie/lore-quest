@@ -119,7 +119,7 @@ export type AttackType = 'Melee' | 'Magic' | 'Ranged';
 export type ItemType = 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold' | 'armor' | 'energy';
 
 // Equipment slots type - updated to include all slots
-export type EquipmentSlot = 'head' | 'chest' | 'legs' | 'feet' | 'hands' | 'neck' | 'ring' | 'mainHand' | 'offHand' | 'body';
+export type EquipmentSlot = 'head' | 'chest' | 'legs' | 'feet' | 'hands' | 'neck' | 'ring' | 'mainHand' | 'offHand' | 'body' | 'mainWeapon' | 'secondaryWeapon';
 
 // Class descriptions and base stats
 export const CLASS_DESCRIPTIONS: Record<PlayerClass, { 

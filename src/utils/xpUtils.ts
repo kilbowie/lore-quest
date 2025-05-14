@@ -599,6 +599,7 @@ export const generateDailyQuests = (user: User): User => {
   const possibleQuests: Quest[] = [
     {
       id: "daily-quest-1",
+      title: "Explore Local Areas",
       name: "Explore Local Areas",
       description: "Discover 3 new locations in your vicinity.",
       xpReward: 150,
@@ -609,6 +610,7 @@ export const generateDailyQuests = (user: User): User => {
     },
     {
       id: "daily-quest-2",
+      title: "Take a Morning Stroll",
       name: "Take a Morning Stroll",
       description: "Walk a distance of 2km before noon.",
       xpReward: 120,
@@ -619,6 +621,7 @@ export const generateDailyQuests = (user: User): User => {
     },
     {
       id: "daily-quest-3",
+      title: "Visit a Landmark",
       name: "Visit a Landmark",
       description: "Visit a historical landmark or monument.",
       xpReward: 180,
@@ -653,6 +656,7 @@ export const generateWeeklyQuests = (user: User): User => {
   const possibleQuests: Quest[] = [
     {
       id: "weekly-quest-1",
+      title: "Explore Different Realms",
       name: "Explore Different Realms",
       description: "Discover locations in 3 different realms (countries).",
       xpReward: 500,
@@ -663,6 +667,7 @@ export const generateWeeklyQuests = (user: User): User => {
     },
     {
       id: "weekly-quest-2",
+      title: "Long Distance Journey",
       name: "Long Distance Journey",
       description: "Travel a total distance of 20km in a week.",
       xpReward: 400,
@@ -673,6 +678,7 @@ export const generateWeeklyQuests = (user: User): User => {
     },
     {
       id: "weekly-quest-3",
+      title: "Visit Multiple Landmarks",
       name: "Visit Multiple Landmarks",
       description: "Visit 5 different historical landmarks or monuments.",
       xpReward: 600,
@@ -707,6 +713,7 @@ export const generateMonthlyQuests = (user: User): User => {
   const possibleQuests = [
     {
       id: "monthly-quest-1",
+      title: "Grand Explorer",
       name: "Grand Explorer",
       description: "Discover 15 new locations this month.",
       xpReward: 1500,
@@ -717,6 +724,7 @@ export const generateMonthlyQuests = (user: User): User => {
     },
     {
       id: "monthly-quest-2",
+      title: "Marathon Walker",
       name: "Marathon Walker",
       description: "Walk a total distance of 100km this month.",
       xpReward: 1200,
@@ -727,6 +735,7 @@ export const generateMonthlyQuests = (user: User): User => {
     },
     {
       id: "monthly-quest-3",
+      title: "Historical Enthusiast",
       name: "Historical Enthusiast",
       description: "Visit 20 different historical landmarks or monuments this month.",
       xpReward: 1800,
@@ -830,6 +839,7 @@ export const addVerificationQuest = (user: User): User => {
   // Define verification quest
   const verificationQuest = {
     id: "email-verification-quest",
+    title: "Verify Your Email",
     name: "Verify Your Email",
     description: "Verify your email address to unlock exclusive rewards.",
     xpReward: 250,

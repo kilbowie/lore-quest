@@ -68,6 +68,10 @@ export interface User {
   // Combat state
   inCombat?: boolean;
   defending?: boolean;
+  // Added properties for quests
+  quests: Quest[];
+  dailyQuests: DailyQuest[];
+  lastDailyQuestReset?: string;
 }
 
 // Equipment slots
@@ -75,10 +79,15 @@ export interface Equipment {
   mainWeapon?: EquippableItem;
   secondaryWeapon?: EquippableItem;
   head?: EquippableItem;
-  body?: EquippableItem;
+  chest?: EquippableItem;
   legs?: EquippableItem;
   hands?: EquippableItem;
   feet?: EquippableItem;
+  neck?: EquippableItem;
+  ring?: EquippableItem;
+  mainHand?: EquippableItem;
+  offHand?: EquippableItem;
+  body?: EquippableItem;
 }
 
 // Player statistics
@@ -109,8 +118,8 @@ export type AttackType = 'Melee' | 'Magic' | 'Ranged';
 // Item types extended
 export type ItemType = 'rune' | 'map' | 'compass' | 'weapon' | 'potion' | 'elixir' | 'other' | 'gold' | 'armor' | 'energy';
 
-// Equipment slots type
-export type EquipmentSlot = 'mainWeapon' | 'secondaryWeapon' | 'head' | 'body' | 'legs' | 'hands' | 'feet';
+// Equipment slots type - updated to include all slots
+export type EquipmentSlot = 'head' | 'chest' | 'legs' | 'feet' | 'hands' | 'neck' | 'ring' | 'mainHand' | 'offHand' | 'body';
 
 // Class descriptions and base stats
 export const CLASS_DESCRIPTIONS: Record<PlayerClass, { 
@@ -216,12 +225,13 @@ export interface InventoryItem {
   equipmentStats?: EquipmentStats;
 }
 
-// Equipment stats
+// Equipment stats - updated to include damage
 export interface EquipmentStats {
   slot: EquipmentSlot;
   attackType?: AttackType;
   statBonuses?: { attribute: string; value: number }[];
   armor?: number;
+  damage?: number; // Added damage property
   requiredClass?: PlayerClass | 'any';
   requiredLevel?: number;
 }
@@ -268,13 +278,14 @@ export type QuestType = 'daily' | 'weekly' | 'monthly' | 'tutorial' | 'verificat
 
 export interface Quest {
   id: string;
+  title: string; // Added title property
   name: string;
   description: string;
-  type: QuestType; // Now QuestType is defined
+  type: QuestType;
   targetId?: string;
   targetCount?: number;
   xpReward: number;
-  goldReward?: number; // Gold reward for completing the quest
+  goldReward?: number;
   itemReward?: {
     type: 'potion' | 'elixir' | 'other' | 'weapon' | 'armor';
     name: string;
@@ -283,9 +294,16 @@ export interface Quest {
   };
   completed?: boolean;
   progress?: number;
-  expiresAt?: Date; // For time-limited quests (daily, weekly, monthly)
+  expiresAt?: Date;
   requiredLevel?: number;
   tasks?: string[];
+  completedDate?: string;
+}
+
+// Added DailyQuest interface
+export interface DailyQuest extends Quest {
+  type: 'daily';
+  expiresAt: Date;
 }
 
 // Constants for leveling system

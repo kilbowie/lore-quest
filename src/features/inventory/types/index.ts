@@ -1,14 +1,8 @@
 
-import { InventoryItem, EquipmentSlot } from '@/types';
+import { InventoryItem, EquipmentSlot, EquippableItem as GlobalEquippableItem } from '@/types';
 
-export interface EquippableItem extends InventoryItem {
-  equipmentStats: {
-    slot: EquipmentSlot;
-    armor?: number;
-    damage?: number;
-    effects?: string[];
-  };
-}
+// Use the EquippableItem from the global types to ensure consistency
+export type { GlobalEquippableItem as EquippableItem };
 
 export interface InventoryContextType {
   inventory: InventoryItem[];

@@ -48,3 +48,7 @@ export interface TutorialQuest {
 export interface TutorialQuestProps {
   onComplete?: () => void;
 }
+
+export interface UserDashboardProps {
+  onClose?: () => void;
+}

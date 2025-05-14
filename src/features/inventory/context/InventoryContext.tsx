@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { InventoryItem } from '@/types';
-import { EquippableItem, InventoryContextType } from '../types';
+import { InventoryItem, EquippableItem } from '@/types';
+import { InventoryContextType } from '../types';
 
 const defaultInventoryContext: InventoryContextType = {
   inventory: [],
@@ -118,8 +118,11 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     if (!item || !item.equipmentStats) return;
     
-    // Use type guard to ensure we have the right type
-    const equippableItem = item as EquippableItem;
+    // Convert to EquippableItem from @/types (not from local types)
+    const equippableItem = {
+      ...item,
+      isEquippable: true,
+    } as unknown as EquippableItem;
     
     // Get the slot this item goes into
     const slot = equippableItem.equipmentStats.slot;

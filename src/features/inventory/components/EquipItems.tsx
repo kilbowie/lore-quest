@@ -45,7 +45,7 @@ const EquipItems: React.FC = () => {
     toast.success(`Unequipped item from ${slot} slot`);
   };
   
-  // Equipment slot order
+  // Equipment slot order with corrected types
   const slotOrder: EquipmentSlot[] = [
     'head', 
     'chest', 

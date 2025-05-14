@@ -100,19 +100,14 @@ export const QuestsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let updatedUser = addExperience(user, quest.xpReward, `Completed quest: ${quest.title}`);
 
     // Award items if any
-    if (quest.itemRewards && quest.itemRewards.length > 0) {
-      quest.itemRewards.forEach(reward => {
-        updatedUser = addItemToInventory(
-          updatedUser,
-          reward.type,
-          reward.name,
-          reward.description || '',
-          reward.quantity || 1,
-          reward.icon,
-          reward.useEffect,
-          reward.value
-        );
-      });
+    if (quest.itemReward) {
+      updatedUser = addItemToInventory(
+        updatedUser,
+        quest.itemReward.type,
+        quest.itemReward.name,
+        quest.itemReward.equipmentStats?.slot || '',
+        quest.itemReward.quantity || 1
+      );
     }
 
     // Award gold if any

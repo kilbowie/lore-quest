@@ -46,21 +46,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if user is already logged in
   useEffect(() => {
-    const storedUserId = localStorage.getItem('currentUserId');
-    
-    if (storedUserId) {
-      const foundUser = getUserById(storedUserId);
-      if (foundUser) {
-        setUser(foundUser);
+    const checkLoggedInUser = async () => {
+      const storedUserId = localStorage.getItem('currentUserId');
+      
+      if (storedUserId) {
+        const foundUser = await getUserById(storedUserId);
+        if (foundUser) {
+          setUser(foundUser);
+        }
       }
-    }
+      
+      setIsLoading(false);
+    };
     
-    setIsLoading(false);
+    checkLoggedInUser();
   }, []);
 
   // Login function
   const login = async (usernameOrEmail: string, password: string): Promise<User | null> => {
-    const loggedInUser = loginUser(usernameOrEmail, password);
+    const loggedInUser = await loginUser(usernameOrEmail, password);
     
     if (loggedInUser) {
       setUser(loggedInUser);
@@ -79,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Register function
   const register = async (name: string, email: string, username: string, password: string): Promise<User | null> => {
-    const newUser = createUserApi(name, email, username, password);
+    const newUser = await createUserApi({ name, email, username, password });
     
     if (newUser) {
       setUser(newUser);
